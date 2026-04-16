@@ -1,11 +1,20 @@
-matched_student = None
-for name in students:
-    if "接" in text and name in text:
-        matched_student = name
-        pickup_queue.append(name)
-        print(f"家長接送：{name}")
-        break
+from flask import Flask, request
 
-if reply_token and CHANNEL_ACCESS_TOKEN and matched_student:
-    reply_message = f"已收到接送通知，{matched_student}準備放學中。"
-    reply_to_line(reply_token, reply_message)
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Webhook running"
+
+@app.route("/callback", methods=["POST"])
+def callback():
+    # 接收 LINE 訊息但不做任何回覆
+    data = request.get_json()
+
+    print("收到LINE訊息：")
+    print(data)
+
+    return "OK"
+
+if __name__ == "__main__":
+    app.run()
