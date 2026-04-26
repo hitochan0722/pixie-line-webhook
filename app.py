@@ -6,9 +6,7 @@ import json
 app = Flask(__name__)
 
 CHANNEL_ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN")
-
 SHEET_API = "https://script.google.com/macros/s/AKfycbx3pzdi1iiC-He3UlNmDZJbacuoSUiBo5pedcU1zGnL3cE5y_SJD8Z6RRDnyhuw_9XG/exec"
-
 GROUP_ID = "Cf1a0bd7a5507f3eea9bed99be40d2dfe"
 
 
@@ -25,12 +23,7 @@ def reply_to_line(reply_token, message):
         headers=line_headers(),
         json={
             "replyToken": reply_token,
-            "messages": [
-                {
-                    "type": "text",
-                    "text": message
-                }
-            ]
+            "messages": [{"type": "text", "text": message}]
         }
     )
 
@@ -41,12 +34,7 @@ def push_line(to, message):
         headers=line_headers(),
         json={
             "to": to,
-            "messages": [
-                {
-                    "type": "text",
-                    "text": message
-                }
-            ]
+            "messages": [{"type": "text", "text": message}]
         }
     )
 
@@ -56,8 +44,14 @@ def parse_jsonp(text):
 
 
 def lookup_student(user_id):
-    url = f"{SHEET_API}?action=lookup&userId={user_id}&callback=cb"
-    res = requests.get(url)
+    res = requests.get(
+        SHEET_API,
+        params={
+            "action": "lookup",
+            "userId": user_id,
+            "callback": "cb"
+        }
+    )
     data = parse_jsonp(res.text)
     students = data.get("students", [])
     return students[0] if students else None
@@ -115,6 +109,7 @@ def webhook():
     print(json.dumps(body, ensure_ascii=False), flush=True)
 
     for event in body.get("events", []):
+
         if event.get("type") != "message":
             continue
 
@@ -128,8 +123,11 @@ def webhook():
         source_type = source.get("type")
         user_id = source.get("userId")
 
+        # =========================
         # 老師群組回覆 1~5
+        # =========================
         if source_type == "group" and text in ["1", "2", "3", "4", "5"]:
+
             pickup = get_last_pickup()
             parent_id = pickup.get("parent_user_id", "")
             row = pickup.get("row", "")
@@ -164,8 +162,11 @@ def webhook():
 
             return "OK", 200
 
+        # =========================
         # 家長私訊：接小孩
+        # =========================
         if source_type == "user" and "接" in text:
+
             student = lookup_student(user_id)
 
             if not student:
@@ -178,7 +179,10 @@ def webhook():
             english = student.get("english_name", "")
             class_name = student.get("class_name", "")
 
-            # 不先回家長，等老師按 1~5 才回
+            # 注意：
+            # 這裡故意不回覆家長「已收到接送通知」
+            # 家長要等老師按 1~5 後，才會收到正式回覆。
+
             push_line(
                 GROUP_ID,
                 "🚗【接送通知】\n\n"
