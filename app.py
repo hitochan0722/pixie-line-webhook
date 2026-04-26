@@ -42,12 +42,21 @@ def push_to_group(message):
 
 def lookup_student(user_id):
     url = f"{SHEET_API}?action=lookup&userId={user_id}&callback=cb"
-    res = requests.get(url)
-    text = res.text
-    json_text = text[text.find("(") + 1:text.rfind(")")]
-    data = json.loads(json_text)
-    students = data.get("students", [])
-    return students[0] if students else None
+
+    try:
+        res = requests.get(url)
+        text = res.text
+
+        json_text = text[text.find("(")+1:text.rfind(")")]
+        data = json.loads(json_text)
+
+        students = data.get("students", [])
+
+        return students[0] if students else None
+
+    except Exception as e:
+        print("lookup error:", e)
+        return None
 
 
 @app.route("/", methods=["GET"])
@@ -59,30 +68,46 @@ def home():
 def webhook():
     body = request.get_json(silent=True) or {}
 
+    print("======收到LINE事件======")
+    print(json.dumps(body, indent=2))
+
     for event in body.get("events", []):
+
         if event.get("type") != "message":
             continue
 
-        msg = event.get("message", {})
-        if msg.get("type") != "text":
+        message = event.get("message", {})
+
+        if message.get("type") != "text":
             continue
 
-        text = msg.get("text", "")
+        text = message.get("text", "").strip()
+
+        print("收到文字:", text)
+
         reply_token = event.get("replyToken")
         user_id = event.get("source", {}).get("userId")
 
+        # 只要包含「接」就觸發
         if "接" in text:
+
             student = lookup_student(user_id)
 
             if not student:
-                reply_to_line(reply_token, "尚未綁定學生，請先完成家長綁定。")
+                reply_to_line(
+                    reply_token,
+                    "尚未綁定學生，請先完成家長綁定。"
+                )
                 return "OK", 200
 
             name = student.get("name", "")
             english = student.get("english_name", "")
             class_name = student.get("class_name", "")
 
-            reply_to_line(reply_token, f"已收到接送通知：{name} {english}")
+            reply_to_line(
+                reply_token,
+                f"已收到接送通知：{name} {english}"
+            )
 
             push_to_group(
                 f"🚗【接送通知】\n\n"
