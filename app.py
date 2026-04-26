@@ -2,19 +2,34 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
-@app.route("/")
+@app.route("/", methods=["GET"])
 def home():
-    return "Webhook running"
+    return "PiXiE LINE webhook is running."
 
 @app.route("/callback", methods=["POST"])
 def callback():
-    # 接收 LINE 訊息但不做任何回覆
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
 
-    print("收到LINE訊息：")
+    print("收到 LINE 訊息：")
     print(data)
 
-    return "OK"
+    events = data.get("events", [])
+
+    for event in events:
+        source = event.get("source", {})
+        if source.get("type") == "group":
+            group_id = source.get("groupId")
+            print("====== LINE GROUP ID ======")
+            print(group_id)
+            print("===========================")
+
+    return "OK", 200
+
+
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    return callback()
+
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0", port=5000)
