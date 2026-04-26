@@ -9,30 +9,23 @@ def home():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
+    data = request.get_json(silent=True) or {}
 
-    data = request.get_json(silent=True)
+    print("====== 收到完整 LINE 資料 ======", flush=True)
+    print(json.dumps(data, indent=2, ensure_ascii=False), flush=True)
+    print("================================", flush=True)
 
-    print("====== 收到完整 LINE 資料 ======")
-    print(json.dumps(data, indent=2, ensure_ascii=False))
-    print("================================")
+    events = data.get("events", [])
 
-    try:
-        events = data.get("events", [])
+    for event in events:
+        source = event.get("source", {})
 
-        for event in events:
+        if source.get("type") == "group":
+            group_id = source.get("groupId")
 
-            source = event.get("source", {})
-
-            if source.get("type") == "group":
-
-                group_id = source.get("groupId")
-
-                print("====== GROUP ID ======")
-                print(group_id)
-                print("======================")
-
-    except Exception as e:
-        print("Error:", str(e))
+            print("====== GROUP ID ======", flush=True)
+            print(group_id, flush=True)
+            print("======================", flush=True)
 
     return "OK", 200
 
