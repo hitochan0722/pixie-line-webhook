@@ -6,7 +6,9 @@ import json
 app = Flask(__name__)
 
 CHANNEL_ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN")
+
 SHEET_API = "https://script.google.com/macros/s/AKfycbx3pzdi1iiC-He3UlNmDZJbacuoSUiBo5pedcU1zGnL3cE5y_SJD8Z6RRDnyhuw_9XG/exec"
+
 GROUP_ID = "Cf1a0bd7a5507f3eea9bed99be40d2dfe"
 
 
@@ -23,7 +25,12 @@ def reply_to_line(reply_token, message):
         headers=line_headers(),
         json={
             "replyToken": reply_token,
-            "messages": [{"type": "text", "text": message}]
+            "messages": [
+                {
+                    "type": "text",
+                    "text": message
+                }
+            ]
         }
     )
 
@@ -34,7 +41,12 @@ def push_line(to, message):
         headers=line_headers(),
         json={
             "to": to,
-            "messages": [{"type": "text", "text": message}]
+            "messages": [
+                {
+                    "type": "text",
+                    "text": message
+                }
+            ]
         }
     )
 
@@ -45,9 +57,51 @@ def parse_jsonp(text):
 
 def lookup_student(user_id):
     url = f"{SHEET_API}?action=lookup&userId={user_id}&callback=cb"
-    data = parse_jsonp(requests.get(url).text)
+    res = requests.get(url)
+    data = parse_jsonp(res.text)
     students = data.get("students", [])
     return students[0] if students else None
+
+
+def add_pickup(student, parent_user_id):
+    requests.get(
+        SHEET_API,
+        params={
+            "action": "addPickup",
+            "student_id": student.get("student_id", ""),
+            "name": student.get("name", ""),
+            "english_name": student.get("english_name", ""),
+            "class_name": student.get("class_name", ""),
+            "parent_user_id": parent_user_id,
+            "parent_name": "",
+            "status": "待處理",
+            "callback": "cb"
+        }
+    )
+
+
+def get_last_pickup():
+    res = requests.get(
+        SHEET_API,
+        params={
+            "action": "lastPickup",
+            "callback": "cb"
+        }
+    )
+    return parse_jsonp(res.text)
+
+
+def update_pickup(row, status, reply):
+    requests.get(
+        SHEET_API,
+        params={
+            "action": "updatePickup",
+            "row": row,
+            "status": status,
+            "reply": reply,
+            "callback": "cb"
+        }
+    )
 
 
 @app.route("/", methods=["GET"])
@@ -74,9 +128,25 @@ def webhook():
         source_type = source.get("type")
         user_id = source.get("userId")
 
-        # 老師群組打 1~5
+        # 老師群組回覆 1~5
         if source_type == "group" and text in ["1", "2", "3", "4", "5"]:
-            replies = {
+            pickup = get_last_pickup()
+            parent_id = pickup.get("parent_user_id", "")
+            row = pickup.get("row", "")
+
+            if not parent_id:
+                reply_to_line(reply_token, "找不到最近一筆接送紀錄。")
+                return "OK", 200
+
+            status_map = {
+                "1": "收拾書包中",
+                "2": "作業未完成",
+                "3": "準備下樓",
+                "4": "老師確認中",
+                "5": "已接走"
+            }
+
+            reply_map = {
                 "1": "家長您好，孩子正在收拾書包中，請稍候一下。",
                 "2": "家長您好，孩子作業尚未完成，約需再 5–10 分鐘，完成後會協助孩子準備下樓。",
                 "3": "家長您好，孩子已準備下樓，請稍候。",
@@ -84,15 +154,13 @@ def webhook():
                 "5": "孩子已完成接送登記，謝謝您。"
             }
 
-            res = requests.get(f"{SHEET_API}?action=lastPickup&callback=cb")
-            data = parse_jsonp(res.text)
-            parent_id = data.get("parent_user_id", "")
+            status = status_map[text]
+            reply_message = reply_map[text]
 
-            if parent_id:
-                push_line(parent_id, replies[text])
-                reply_to_line(reply_token, "已通知家長。")
-            else:
-                reply_to_line(reply_token, "找不到最近一筆接送紀錄。")
+            push_line(parent_id, reply_message)
+            update_pickup(row, status, reply_message)
+
+            reply_to_line(reply_token, "已通知家長：" + status)
 
             return "OK", 200
 
@@ -104,39 +172,24 @@ def webhook():
                 reply_to_line(reply_token, "尚未綁定學生，請先完成家長綁定。")
                 return "OK", 200
 
-            sid = student.get("student_id", "")
+            add_pickup(student, user_id)
+
             name = student.get("name", "")
             english = student.get("english_name", "")
             class_name = student.get("class_name", "")
 
-            requests.get(
-                SHEET_API,
-                params={
-                    "action": "addPickup",
-                    "student_id": sid,
-                    "name": name,
-                    "english_name": english,
-                    "class_name": class_name,
-                    "parent_user_id": user_id,
-                    "parent_name": "",
-                    "status": "待處理",
-                    "callback": "cb"
-                }
-            )
-
-            reply_to_line(reply_token, f"已收到接送通知：{name} {english}")
-
+            # 不先回家長，等老師按 1~5 才回
             push_line(
                 GROUP_ID,
-                f"🚗【接送通知】\n\n"
+                "🚗【接送通知】\n\n"
                 f"學生：{name} {english}\n"
                 f"班級：{class_name}\n\n"
-                f"請老師回覆數字：\n"
-                f"1️⃣ 收拾書包中\n"
-                f"2️⃣ 作業未完成，還需 5–10 分鐘\n"
-                f"3️⃣ 準備下樓\n"
-                f"4️⃣ 老師確認中\n"
-                f"5️⃣ 已接走"
+                "請老師回覆數字：\n"
+                "1️⃣ 收拾書包中\n"
+                "2️⃣ 作業未完成，還需 5–10 分鐘\n"
+                "3️⃣ 準備下樓\n"
+                "4️⃣ 老師確認中\n"
+                "5️⃣ 已接走"
             )
 
             return "OK", 200
