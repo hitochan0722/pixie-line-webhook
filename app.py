@@ -10,7 +10,7 @@ app = Flask(__name__)
 CHANNEL_ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN")
 
 # Google Sheet API URL（你原本的）
-SHEET_API = "你的AppsScript網址"
+SHEET_API = "https://script.google.com/macros/s/AKfycbxxxx/exec"
 
 # 老師群組ID（你之前抓到的）
 GROUP_ID = "Cf1a0bd7a5507f3eea9bed99be40d2dfe"
