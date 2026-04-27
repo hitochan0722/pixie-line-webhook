@@ -1,134 +1,45 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
-
 <head>
 <meta charset="UTF-8">
-<title>PiXiE 接送看板 V15</title>
+<title>PiXiE 接送看板 V15.1</title>
 
 <style>
-body {
-    margin: 0;
-    font-family: "Microsoft JhengHei", sans-serif;
-    background: #f4f1ea;
-}
-
-.header {
-    background: #6b4f3f;
-    color: white;
-    padding: 20px;
-    font-size: 32px;
-    text-align: center;
-    font-weight: bold;
-}
-
-.container {
-    padding: 20px;
-}
-
-.notice {
-    background: #fff7d6;
-    padding: 12px 16px;
-    border-radius: 12px;
-    margin-bottom: 16px;
-    font-size: 16px;
-}
-
-.card {
-    background: white;
-    border-radius: 18px;
-    padding: 22px;
-    margin-bottom: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-}
-
-.card.waiting {
-    border-left: 12px solid #f6c453;
-}
-
-.card.packing {
-    border-left: 12px solid #6ca8ff;
-}
-
-.card.later {
-    border-left: 12px solid #f28c28;
-}
-
-.card.ready {
-    border-left: 12px solid #62c370;
-}
-
-.card.alert {
-    border-left: 12px solid #e74c3c;
-    background: #fff0f0;
-}
-
-.number {
-    font-size: 40px;
-    font-weight: bold;
-    color: #b35c00;
-}
-
-.name {
-    font-size: 34px;
-    font-weight: bold;
-}
-
-.info {
-    font-size: 17px;
-    color: #666;
-    margin-top: 6px;
-}
-
-.status {
-    font-size: 23px;
-    margin-top: 10px;
-    font-weight: bold;
-}
-
-button {
-    padding: 14px 20px;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 20px;
-}
-
-.call {
-    background: #f6c453;
-}
-
-.clear {
-    background: black;
-    color: white;
-    margin-bottom: 18px;
-}
-
-.empty {
-    text-align: center;
-    font-size: 28px;
-    color: #777;
-    margin-top: 80px;
-}
+body { margin:0; font-family:"Microsoft JhengHei",sans-serif; background:#f4f1ea; }
+.header { background:#6b4f3f; color:white; padding:20px; font-size:32px; text-align:center; font-weight:bold; }
+.container { padding:20px; }
+.notice { background:#fff7d6; padding:12px 16px; border-radius:12px; margin-bottom:16px; font-size:16px; }
+.card { background:white; border-radius:18px; padding:22px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 4px 12px rgba(0,0,0,0.12); }
+.card.waiting { border-left:12px solid #f6c453; }
+.card.packing { border-left:12px solid #6ca8ff; }
+.card.later { border-left:12px solid #f28c28; }
+.card.ready { border-left:12px solid #62c370; }
+.card.alert { border-left:12px solid #e74c3c; background:#fff0f0; }
+.number { font-size:40px; font-weight:bold; color:#b35c00; }
+.name { font-size:34px; font-weight:bold; }
+.info { font-size:17px; color:#666; margin-top:6px; }
+.status { font-size:23px; margin-top:10px; font-weight:bold; }
+button { padding:14px 20px; border:none; border-radius:12px; cursor:pointer; font-size:20px; margin-right:8px; }
+.call { background:#f6c453; }
+.clear { background:black; color:white; margin-bottom:18px; }
+.enable { background:#62c370; color:white; margin-bottom:18px; }
+.empty { text-align:center; font-size:28px; color:#777; margin-top:80px; }
 </style>
-
 </head>
 
 <body>
 
-<div class="header">
-PiXiE 接送語音叫號看板 V15
-</div>
+<div class="header">PiXiE 接送語音叫號看板 V15.1</div>
 
 <div class="container">
 
 <div class="notice">
-🔊 老師在群組按「已下樓」後，看板會自動播放學生姓名。<br>
+🔊 每天第一次打開看板，請先按「啟用語音」。<br>
+老師在群組按「已下樓」後，看板會自動播放學生姓名。<br>
 ⏰ 老師按「5–10分鐘」後，10分鐘會自動提醒老師群組。
 </div>
 
+<button class="enable" onclick="enableVoice()">🔊 啟用語音</button>
 <button class="clear" onclick="clearQueue()">清空全部</button>
 
 <div id="list"></div>
@@ -136,11 +47,28 @@ PiXiE 接送語音叫號看板 V15
 </div>
 
 <script>
+let voiceEnabled = false;
 const announcedStudents = new Set();
+
+function enableVoice() {
+    voiceEnabled = true;
+
+    const utterance = new SpeechSynthesisUtterance("語音已啟用");
+    utterance.lang = "zh-TW";
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+
+    alert("語音已啟用，之後已下樓會自動叫號。");
+}
 
 function speak(name) {
     if (!("speechSynthesis" in window)) {
         alert("此裝置不支援語音");
+        return;
+    }
+
+    if (!voiceEnabled) {
+        console.log("語音尚未啟用");
         return;
     }
 
@@ -178,8 +106,6 @@ async function loadQueue() {
     }
 
     data.forEach((item, index) => {
-        const card = document.createElement('div');
-
         const studentName = item.student_name;
         const englishName = item.english_name || "";
         const className = item.class_name || "未填";
@@ -187,6 +113,7 @@ async function loadQueue() {
         const statusText = item.status_text || "等待老師處理";
         const updatedAt = item.updated_at || "";
 
+        const card = document.createElement('div');
         card.className = "card " + getCardClass(status);
 
         card.innerHTML = `
@@ -222,6 +149,7 @@ async function loadQueue() {
 }
 
 async function manualCall(index, name) {
+    voiceEnabled = true;
     speak(name);
 
     await fetch(`/api/call/${index}`, {
