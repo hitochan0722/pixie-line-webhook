@@ -1,466 +1,130 @@
 from flask import Flask, request, jsonify, render_template
-import os
 import csv
 import json
-from datetime import datetime, date
 import requests
+import os
 
 app = Flask(__name__)
 
-CHANNEL_ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN", "")
+# LINE 設定
+CHANNEL_ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN")
 
-CSV_STUDENTS = "students.csv"
-CSV_PICKUPS = "pickups.csv"
-CSV_LEAVES = "leaves.csv"
+students = []
+pickup_queue = []
 
+GROUP_ID = None
 
-def now_text():
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-
-def today_text():
-    return date.today().strftime("%Y-%m-%d")
-
-
-def ensure_csv(path, headers):
-    if not os.path.exists(path):
-        with open(path, "w", newline="", encoding="utf-8-sig") as f:
-            writer = csv.writer(f)
-            writer.writerow(headers)
-
-
-def read_csv(path):
-    if not os.path.exists(path):
-        return []
-    with open(path, "r", encoding="utf-8-sig") as f:
-        return list(csv.DictReader(f))
-
-
-def write_csv(path, headers, rows):
-    with open(path, "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=headers)
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def append_csv(path, headers, row):
-    ensure_csv(path, headers)
-    with open(path, "a", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=headers)
-        writer.writerow(row)
-
-
+# 讀取學生名單
 def load_students():
-    ensure_csv(CSV_STUDENTS, [
-        "student_id",
-        "學生姓名",
-        "英文姓名",
-        "年級",
-        "班級",
-        "家長姓名",
-        "家長LINE名稱",
-        "接送方式",
-        "備註"
-    ])
-    return read_csv(CSV_STUDENTS)
+    global students
+    students = []
 
+    try:
+        with open("students.csv", newline="", encoding="utf-8-sig") as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                students.append(row["學生姓名"])
+    except:
+        print("students.csv 讀取失敗")
 
-def find_student(text):
-    students = load_students()
-    for s in students:
-        name = s.get("學生姓名", "").strip()
-        english = s.get("英文姓名", "").strip()
+load_students()
 
-        if name and name in text:
-            return s
+# 發送 LINE 訊息
+def push_group_message(text):
 
-        if english and english.lower() in text.lower():
-            return s
+    global GROUP_ID
 
-    return None
-
-
-def reply_to_line(reply_token, message):
-    if not CHANNEL_ACCESS_TOKEN or not reply_token:
+    if not GROUP_ID:
+        print("⚠️ 尚未取得 GROUP_ID")
         return
-
-    url = "https://api.line.me/v2/bot/message/reply"
 
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {CHANNEL_ACCESS_TOKEN}"
     }
 
-    body = {
-        "replyToken": reply_token,
+    data = {
+        "to": GROUP_ID,
         "messages": [
             {
                 "type": "text",
-                "text": message
+                "text": text
             }
         ]
     }
 
-    requests.post(url, headers=headers, data=json.dumps(body))
-
-
-def push_to_line(user_id, message):
-    if not CHANNEL_ACCESS_TOKEN or not user_id:
-        return
-
-    url = "https://api.line.me/v2/bot/message/push"
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {CHANNEL_ACCESS_TOKEN}"
-    }
-
-    body = {
-        "to": user_id,
-        "messages": [
-            {
-                "type": "text",
-                "text": message
-            }
-        ]
-    }
-
-    requests.post(url, headers=headers, data=json.dumps(body))
-
+    requests.post(
+        "https://api.line.me/v2/bot/message/push",
+        headers=headers,
+        data=json.dumps(data)
+    )
 
 @app.route("/")
 def home():
-    return "PiXiE V9 接送叫號看板 + 請假統計系統已啟動"
+    return "Webhook running"
 
-
+# LINE webhook
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    data = request.get_json()
-    events = data.get("events", [])
 
-    for event in events:
-        if event.get("type") != "message":
-            continue
+    global GROUP_ID
 
-        message = event.get("message", {})
+    body = request.get_json()
 
-        if message.get("type") != "text":
-            continue
+    print("收到 webhook")
 
-        text = message.get("text", "").strip()
-        text_clean = text.replace(" ", "").replace("　", "")
+    if "events" in body:
 
-        reply_token = event.get("replyToken", "")
-        source = event.get("source", {})
-        user_id = source.get("userId", "")
+        for event in body["events"]:
 
-        student = find_student(text_clean)
+            # 抓群組ID
+            if event["source"]["type"] == "group":
 
-        # =========================
-        # 老師手動通知 1~5
-        # =========================
+                GROUP_ID = event["source"]["groupId"]
 
-        if text_clean in ["1", "2", "3", "4", "5"]:
+                print("GROUP ID =", GROUP_ID)
 
-            message_map = {
-                "1": "孩子準備中，請稍候。",
-                "2": "孩子正在下樓。",
-                "3": "請到門口接孩子。",
-                "4": "目前接送人數較多，請稍等一下。",
-                "5": "已完成接送，謝謝。"
-            }
+            # 處理文字訊息
+            if event["type"] == "message":
 
-            rows = read_csv(CSV_PICKUPS)
+                if event["message"]["type"] == "text":
 
-            target = None
+                    text = event["message"]["text"]
 
-            for r in rows:
-                if r.get("狀態") != "已完成":
-                    target = r
-                    break
+                    for name in students:
 
-            if target:
-                parent_line_id = target.get("家長LINE_ID", "")
-                student_name = target.get("學生姓名", "")
-                notify_text = f"{student_name}：{message_map[text_clean]}"
+                        if name in text and "接" in text:
 
-                push_to_line(parent_line_id, notify_text)
+                            pickup_queue.append(name)
 
-                if text_clean == "5":
-                    target["狀態"] = "已完成"
-                    target["完成時間"] = now_text()
-                else:
-                    target["狀態"] = f"已通知{ text_clean }"
+                            print("加入接送：", name)
 
-                write_csv(CSV_PICKUPS, [
-                    "id",
-                    "student_id",
-                    "學生姓名",
-                    "英文姓名",
-                    "班級",
-                    "家長LINE_ID",
-                    "狀態",
-                    "通知時間",
-                    "完成時間"
-                ], rows)
+    return "OK"
 
-                reply_to_line(reply_token, f"已通知家長：{student_name}")
+# 取得接送名單
+@app.route("/api/pickups")
+def get_pickups():
+    return jsonify(pickup_queue)
 
-            else:
-                reply_to_line(reply_token, "目前看板沒有等待接送的學生。")
+# 叫號
+@app.route("/api/call/<name>", methods=["POST"])
+def call_student(name):
 
-            continue
+    if name in pickup_queue:
+        pickup_queue.remove(name)
 
-        # =========================
-        # 家長接送：不自動回覆，只加入看板
-        # =========================
+    message = f"{name}請到門口"
 
-        if "接" in text_clean and student:
+    print("叫號：", message)
 
-            headers = [
-                "id",
-                "student_id",
-                "學生姓名",
-                "英文姓名",
-                "班級",
-                "家長LINE_ID",
-                "狀態",
-                "通知時間",
-                "完成時間"
-            ]
+    push_group_message(message)
 
-            row = {
-                "id": datetime.now().strftime("%Y%m%d%H%M%S%f"),
-                "student_id": student.get("student_id", ""),
-                "學生姓名": student.get("學生姓名", ""),
-                "英文姓名": student.get("英文姓名", ""),
-                "班級": student.get("班級", ""),
-                "家長LINE_ID": user_id,
-                "狀態": "等待叫號",
-                "通知時間": now_text(),
-                "完成時間": ""
-            }
+    return "OK"
 
-            append_csv(CSV_PICKUPS, headers, row)
-
-            print(f"接送新增：{student.get('學生姓名', '')}")
-
-            # 不回覆家長
-            continue
-
-        # =========================
-        # 請假
-        # =========================
-
-        if "請假" in text_clean and student:
-
-            leave_type = "其他"
-
-            if "病假" in text_clean:
-                leave_type = "病假"
-            elif "事假" in text_clean:
-                leave_type = "事假"
-
-            headers = [
-                "id",
-                "student_id",
-                "學生姓名",
-                "英文姓名",
-                "班級",
-                "假別",
-                "請假日期",
-                "原始訊息",
-                "家長LINE_ID",
-                "收到時間"
-            ]
-
-            row = {
-                "id": datetime.now().strftime("%Y%m%d%H%M%S%f"),
-                "student_id": student.get("student_id", ""),
-                "學生姓名": student.get("學生姓名", ""),
-                "英文姓名": student.get("英文姓名", ""),
-                "班級": student.get("班級", ""),
-                "假別": leave_type,
-                "請假日期": today_text(),
-                "原始訊息": text,
-                "家長LINE_ID": user_id,
-                "收到時間": now_text()
-            }
-
-            append_csv(CSV_LEAVES, headers, row)
-
-            reply_to_line(
-                reply_token,
-                f"已收到請假通知：{student.get('學生姓名')}，假別：{leave_type}。"
-            )
-
-            continue
-
-    return jsonify({"status": "ok"})
-
-
+# 看板
 @app.route("/board")
 def board():
     return render_template("board.html")
 
-
-@app.route("/leave")
-def leave():
-    return render_template("leave.html")
-
-
-@app.route("/api/pickups")
-def api_pickups():
-    ensure_csv(CSV_PICKUPS, [
-        "id",
-        "student_id",
-        "學生姓名",
-        "英文姓名",
-        "班級",
-        "家長LINE_ID",
-        "狀態",
-        "通知時間",
-        "完成時間"
-    ])
-
-    rows = read_csv(CSV_PICKUPS)
-
-    rows = [
-        r for r in rows
-        if r.get("狀態") != "已完成"
-    ]
-
-    return jsonify(rows)
-
-
-@app.route("/api/pickup/call", methods=["POST"])
-def api_pickup_call():
-    pickup_id = request.json.get("id")
-    rows = read_csv(CSV_PICKUPS)
-
-    for r in rows:
-        if r.get("id") == pickup_id:
-            r["狀態"] = "已叫號"
-
-    write_csv(CSV_PICKUPS, [
-        "id",
-        "student_id",
-        "學生姓名",
-        "英文姓名",
-        "班級",
-        "家長LINE_ID",
-        "狀態",
-        "通知時間",
-        "完成時間"
-    ], rows)
-
-    return jsonify({"status": "ok"})
-
-
-@app.route("/api/pickup/done", methods=["POST"])
-def api_pickup_done():
-    pickup_id = request.json.get("id")
-    rows = read_csv(CSV_PICKUPS)
-
-    for r in rows:
-        if r.get("id") == pickup_id:
-            r["狀態"] = "已完成"
-            r["完成時間"] = now_text()
-
-    write_csv(CSV_PICKUPS, [
-        "id",
-        "student_id",
-        "學生姓名",
-        "英文姓名",
-        "班級",
-        "家長LINE_ID",
-        "狀態",
-        "通知時間",
-        "完成時間"
-    ], rows)
-
-    return jsonify({"status": "ok"})
-
-
-@app.route("/api/pickup/cancel", methods=["POST"])
-def api_pickup_cancel():
-    pickup_id = request.json.get("id")
-    rows = read_csv(CSV_PICKUPS)
-
-    rows = [
-        r for r in rows
-        if r.get("id") != pickup_id
-    ]
-
-    write_csv(CSV_PICKUPS, [
-        "id",
-        "student_id",
-        "學生姓名",
-        "英文姓名",
-        "班級",
-        "家長LINE_ID",
-        "狀態",
-        "通知時間",
-        "完成時間"
-    ], rows)
-
-    return jsonify({"status": "ok"})
-
-
-@app.route("/api/pickup/clear", methods=["POST"])
-def api_pickup_clear():
-    write_csv(CSV_PICKUPS, [
-        "id",
-        "student_id",
-        "學生姓名",
-        "英文姓名",
-        "班級",
-        "家長LINE_ID",
-        "狀態",
-        "通知時間",
-        "完成時間"
-    ], [])
-
-    return jsonify({"status": "ok"})
-
-
-@app.route("/api/leaves")
-def api_leaves():
-    ensure_csv(CSV_LEAVES, [
-        "id",
-        "student_id",
-        "學生姓名",
-        "英文姓名",
-        "班級",
-        "假別",
-        "請假日期",
-        "原始訊息",
-        "家長LINE_ID",
-        "收到時間"
-    ])
-
-    rows = read_csv(CSV_LEAVES)
-
-    today = today_text()
-
-    today_count = len([
-        r for r in rows
-        if r.get("請假日期") == today
-    ])
-
-    month = today[:7]
-
-    month_count = len([
-        r for r in rows
-        if r.get("收到時間", "").startswith(month)
-    ])
-
-    return jsonify({
-        "rows": rows,
-        "today_count": today_count,
-        "month_count": month_count
-    })
-
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run()
