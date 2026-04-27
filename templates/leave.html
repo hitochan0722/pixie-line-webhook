@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>PiXiE V9 請假統計</title>
+
+<style>
+
+body {
+    margin: 0;
+    font-family: "Microsoft JhengHei", sans-serif;
+    background: #f7f5ef;
+}
+
+.header {
+    background: #4f6b5f;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    font-size: 30px;
+    font-weight: bold;
+}
+
+.container {
+    padding: 20px;
+}
+
+.box {
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 15px;
+    text-align: center;
+}
+
+.num {
+    font-size: 40px;
+    font-weight: bold;
+    color: #4f6b5f;
+}
+
+table {
+    width: 100%;
+    background: white;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+}
+
+th {
+    background: #e2eadf;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+PiXiE V9｜請假統計
+</div>
+
+<div class="container">
+
+<div class="box">
+今日請假：
+<div class="num" id="today_count">0</div>
+</div>
+
+<div class="box">
+本月請假：
+<div class="num" id="month_count">0</div>
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>日期</th>
+<th>學生</th>
+<th>班級</th>
+<th>假別</th>
+<th>收到時間</th>
+</tr>
+</thead>
+
+<tbody id="leave_rows"></tbody>
+
+</table>
+
+</div>
+
+<script>
+
+async function loadLeaves() {
+
+    const res = await fetch('/api/leaves');
+    const data = await res.json();
+
+    document.getElementById('today_count').innerText =
+        data.today_count;
+
+    document.getElementById('month_count').innerText =
+        data.month_count;
+
+    const rows = document.getElementById('leave_rows');
+    rows.innerHTML = '';
+
+    data.rows.forEach(item => {
+
+        rows.innerHTML += `
+        <tr>
+        <td>${item["請假日期"]}</td>
+        <td>${item["學生姓名"]}</td>
+        <td>${item["班級"]}</td>
+        <td>${item["假別"]}</td>
+        <td>${item["收到時間"]}</td>
+        </tr>
+        `;
+
+    });
+
+}
+
+loadLeaves();
+
+setInterval(loadLeaves, 5000);
+
+</script>
+
+</body>
+</html>
