@@ -14,10 +14,6 @@ CSV_PICKUPS = "pickups.csv"
 CSV_LEAVES = "leaves.csv"
 
 
-# =========================
-# 基本工具
-# =========================
-
 def now_text():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -36,17 +32,8 @@ def ensure_csv(path, headers):
 def read_csv(path):
     if not os.path.exists(path):
         return []
-
     with open(path, "r", encoding="utf-8-sig") as f:
         return list(csv.DictReader(f))
-
-
-def append_csv(path, headers, row):
-    ensure_csv(path, headers)
-
-    with open(path, "a", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=headers)
-        writer.writerow(row)
 
 
 def write_csv(path, headers, rows):
@@ -56,12 +43,14 @@ def write_csv(path, headers, rows):
         writer.writerows(rows)
 
 
-# =========================
-# 讀學生
-# =========================
+def append_csv(path, headers, row):
+    ensure_csv(path, headers)
+    with open(path, "a", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=headers)
+        writer.writerow(row)
+
 
 def load_students():
-
     ensure_csv(CSV_STUDENTS, [
         "student_id",
         "學生姓名",
@@ -73,16 +62,12 @@ def load_students():
         "接送方式",
         "備註"
     ])
-
     return read_csv(CSV_STUDENTS)
 
 
 def find_student(text):
-
     students = load_students()
-
     for s in students:
-
         name = s.get("學生姓名", "").strip()
         english = s.get("英文姓名", "").strip()
 
@@ -95,13 +80,8 @@ def find_student(text):
     return None
 
 
-# =========================
-# LINE 回覆
-# =========================
-
 def reply_to_line(reply_token, message):
-
-    if not CHANNEL_ACCESS_TOKEN:
+    if not CHANNEL_ACCESS_TOKEN or not reply_token:
         return
 
     url = "https://api.line.me/v2/bot/message/reply"
@@ -124,28 +104,41 @@ def reply_to_line(reply_token, message):
     requests.post(url, headers=headers, data=json.dumps(body))
 
 
-# =========================
-# 首頁
-# =========================
+def push_to_line(user_id, message):
+    if not CHANNEL_ACCESS_TOKEN or not user_id:
+        return
+
+    url = "https://api.line.me/v2/bot/message/push"
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {CHANNEL_ACCESS_TOKEN}"
+    }
+
+    body = {
+        "to": user_id,
+        "messages": [
+            {
+                "type": "text",
+                "text": message
+            }
+        ]
+    }
+
+    requests.post(url, headers=headers, data=json.dumps(body))
+
 
 @app.route("/")
 def home():
     return "PiXiE V9 接送叫號看板 + 請假統計系統已啟動"
 
 
-# =========================
-# LINE Webhook
-# =========================
-
 @app.route("/webhook", methods=["POST"])
 def webhook():
-
     data = request.get_json()
-
     events = data.get("events", [])
 
     for event in events:
-
         if event.get("type") != "message":
             continue
 
@@ -155,19 +148,71 @@ def webhook():
             continue
 
         text = message.get("text", "").strip()
-
-        # 去空格版本（超重要）
         text_clean = text.replace(" ", "").replace("　", "")
 
         reply_token = event.get("replyToken", "")
-
         source = event.get("source", {})
         user_id = source.get("userId", "")
 
         student = find_student(text_clean)
 
         # =========================
-        # 接送
+        # 老師手動通知 1~5
+        # =========================
+
+        if text_clean in ["1", "2", "3", "4", "5"]:
+
+            message_map = {
+                "1": "孩子準備中，請稍候。",
+                "2": "孩子正在下樓。",
+                "3": "請到門口接孩子。",
+                "4": "目前接送人數較多，請稍等一下。",
+                "5": "已完成接送，謝謝。"
+            }
+
+            rows = read_csv(CSV_PICKUPS)
+
+            target = None
+
+            for r in rows:
+                if r.get("狀態") != "已完成":
+                    target = r
+                    break
+
+            if target:
+                parent_line_id = target.get("家長LINE_ID", "")
+                student_name = target.get("學生姓名", "")
+                notify_text = f"{student_name}：{message_map[text_clean]}"
+
+                push_to_line(parent_line_id, notify_text)
+
+                if text_clean == "5":
+                    target["狀態"] = "已完成"
+                    target["完成時間"] = now_text()
+                else:
+                    target["狀態"] = f"已通知{ text_clean }"
+
+                write_csv(CSV_PICKUPS, [
+                    "id",
+                    "student_id",
+                    "學生姓名",
+                    "英文姓名",
+                    "班級",
+                    "家長LINE_ID",
+                    "狀態",
+                    "通知時間",
+                    "完成時間"
+                ], rows)
+
+                reply_to_line(reply_token, f"已通知家長：{student_name}")
+
+            else:
+                reply_to_line(reply_token, "目前看板沒有等待接送的學生。")
+
+            continue
+
+        # =========================
+        # 家長接送：不自動回覆，只加入看板
         # =========================
 
         if "接" in text_clean and student:
@@ -198,11 +243,9 @@ def webhook():
 
             append_csv(CSV_PICKUPS, headers, row)
 
-            reply_to_line(
-                reply_token,
-                f"已收到接送通知：{student.get('學生姓名')}，請稍候。"
-            )
+            print(f"接送新增：{student.get('學生姓名', '')}")
 
+            # 不回覆家長
             continue
 
         # =========================
@@ -215,11 +258,8 @@ def webhook():
 
             if "病假" in text_clean:
                 leave_type = "病假"
-
             elif "事假" in text_clean:
                 leave_type = "事假"
-
-            leave_date = today_text()
 
             headers = [
                 "id",
@@ -241,7 +281,7 @@ def webhook():
                 "英文姓名": student.get("英文姓名", ""),
                 "班級": student.get("班級", ""),
                 "假別": leave_type,
-                "請假日期": leave_date,
+                "請假日期": today_text(),
                 "原始訊息": text,
                 "家長LINE_ID": user_id,
                 "收到時間": now_text()
@@ -259,10 +299,6 @@ def webhook():
     return jsonify({"status": "ok"})
 
 
-# =========================
-# 看板頁面
-# =========================
-
 @app.route("/board")
 def board():
     return render_template("board.html")
@@ -273,13 +309,8 @@ def leave():
     return render_template("leave.html")
 
 
-# =========================
-# API 接送
-# =========================
-
 @app.route("/api/pickups")
 def api_pickups():
-
     ensure_csv(CSV_PICKUPS, [
         "id",
         "student_id",
@@ -304,13 +335,10 @@ def api_pickups():
 
 @app.route("/api/pickup/call", methods=["POST"])
 def api_pickup_call():
-
     pickup_id = request.json.get("id")
-
     rows = read_csv(CSV_PICKUPS)
 
     for r in rows:
-
         if r.get("id") == pickup_id:
             r["狀態"] = "已叫號"
 
@@ -331,15 +359,11 @@ def api_pickup_call():
 
 @app.route("/api/pickup/done", methods=["POST"])
 def api_pickup_done():
-
     pickup_id = request.json.get("id")
-
     rows = read_csv(CSV_PICKUPS)
 
     for r in rows:
-
         if r.get("id") == pickup_id:
-
             r["狀態"] = "已完成"
             r["完成時間"] = now_text()
 
@@ -360,9 +384,7 @@ def api_pickup_done():
 
 @app.route("/api/pickup/cancel", methods=["POST"])
 def api_pickup_cancel():
-
     pickup_id = request.json.get("id")
-
     rows = read_csv(CSV_PICKUPS)
 
     rows = [
@@ -387,7 +409,6 @@ def api_pickup_cancel():
 
 @app.route("/api/pickup/clear", methods=["POST"])
 def api_pickup_clear():
-
     write_csv(CSV_PICKUPS, [
         "id",
         "student_id",
@@ -403,13 +424,8 @@ def api_pickup_clear():
     return jsonify({"status": "ok"})
 
 
-# =========================
-# API 請假
-# =========================
-
 @app.route("/api/leaves")
 def api_leaves():
-
     ensure_csv(CSV_LEAVES, [
         "id",
         "student_id",
