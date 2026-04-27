@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>PiXiE V9 接送叫號看板</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: "Microsoft JhengHei", sans-serif;
+    background: #f4f1ea;
+}
+
+.header {
+    background: #6b4f3f;
+    color: white;
+    padding: 20px;
+    font-size: 30px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.container {
+    padding: 20px;
+}
+
+.card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.name {
+    font-size: 30px;
+    font-weight: bold;
+}
+
+.status {
+    font-size: 20px;
+    color: #b35c00;
+}
+
+button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 10px;
+    margin-left: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.call {
+    background: #f6c453;
+}
+
+.done {
+    background: #7acb7a;
+}
+
+.cancel {
+    background: #e98b8b;
+}
+
+.clear {
+    background: black;
+    color: white;
+    margin-bottom: 15px;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+PiXiE V9｜接送叫號看板
+</div>
+
+<div class="container">
+
+<button class="clear" onclick="clearAll()">清空全部</button>
+
+<div id="list"></div>
+
+</div>
+
+<script>
+
+async function loadPickups() {
+
+    const res = await fetch('/api/pickups');
+    const data = await res.json();
+
+    const list = document.getElementById('list');
+    list.innerHTML = '';
+
+    data.forEach(item => {
+
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        card.innerHTML = `
+            <div>
+                <div class="name">
+                ${item["學生姓名"]}
+                </div>
+
+                <div class="status">
+                ${item["狀態"]}
+                </div>
+            </div>
+
+            <div>
+
+                <button class="call"
+                onclick="callPickup('${item.id}')">
+                叫號
+                </button>
+
+                <button class="done"
+                onclick="donePickup('${item.id}')">
+                完成
+                </button>
+
+                <button class="cancel"
+                onclick="cancelPickup('${item.id}')">
+                取消
+                </button>
+
+            </div>
+        `;
+
+        list.appendChild(card);
+
+    });
+
+}
+
+async function callPickup(id) {
+
+    await fetch('/api/pickup/call', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id})
+    });
+
+    loadPickups();
+}
+
+async function donePickup(id) {
+
+    await fetch('/api/pickup/done', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id})
+    });
+
+    loadPickups();
+}
+
+async function cancelPickup(id) {
+
+    await fetch('/api/pickup/cancel', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id})
+    });
+
+    loadPickups();
+}
+
+async function clearAll() {
+
+    await fetch('/api/pickup/clear', {
+        method: 'POST'
+    });
+
+    loadPickups();
+}
+
+loadPickups();
+
+setInterval(loadPickups, 3000);
+
+</script>
+
+</body>
+</html>
