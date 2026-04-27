@@ -3,10 +3,9 @@
 
 <head>
 <meta charset="UTF-8">
-<title>PiXiE 接送看板 V10</title>
+<title>PiXiE 接送看板 V15</title>
 
 <style>
-
 body {
     margin: 0;
     font-family: "Microsoft JhengHei", sans-serif;
@@ -26,6 +25,14 @@ body {
     padding: 20px;
 }
 
+.notice {
+    background: #fff7d6;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    font-size: 16px;
+}
+
 .card {
     background: white;
     border-radius: 18px;
@@ -37,15 +44,48 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.12);
 }
 
-.name {
-    font-size: 34px;
-    font-weight: bold;
+.card.waiting {
+    border-left: 12px solid #f6c453;
+}
+
+.card.packing {
+    border-left: 12px solid #6ca8ff;
+}
+
+.card.later {
+    border-left: 12px solid #f28c28;
+}
+
+.card.ready {
+    border-left: 12px solid #62c370;
+}
+
+.card.alert {
+    border-left: 12px solid #e74c3c;
+    background: #fff0f0;
 }
 
 .number {
     font-size: 40px;
     font-weight: bold;
     color: #b35c00;
+}
+
+.name {
+    font-size: 34px;
+    font-weight: bold;
+}
+
+.info {
+    font-size: 17px;
+    color: #666;
+    margin-top: 6px;
+}
+
+.status {
+    font-size: 23px;
+    margin-top: 10px;
+    font-weight: bold;
 }
 
 button {
@@ -72,15 +112,6 @@ button {
     color: #777;
     margin-top: 80px;
 }
-
-.notice {
-    background: #fff7d6;
-    padding: 12px 16px;
-    border-radius: 12px;
-    margin-bottom: 16px;
-    font-size: 16px;
-}
-
 </style>
 
 </head>
@@ -88,14 +119,14 @@ button {
 <body>
 
 <div class="header">
-PiXiE 接送語音叫號看板 V10
+PiXiE 接送語音叫號看板 V15
 </div>
 
 <div class="container">
 
 <div class="notice">
-🔊 按「叫號」會播放學生姓名<br>
-家長只有在老師按叫號時才會收到通知
+🔊 老師在群組按「已下樓」後，看板會自動播放學生姓名。<br>
+⏰ 老師按「5–10分鐘」後，10分鐘會自動提醒老師群組。
 </div>
 
 <button class="clear" onclick="clearQueue()">清空全部</button>
@@ -105,9 +136,9 @@ PiXiE 接送語音叫號看板 V10
 </div>
 
 <script>
+const announcedStudents = new Set();
 
 function speak(name) {
-
     if (!("speechSynthesis" in window)) {
         alert("此裝置不支援語音");
         return;
@@ -115,20 +146,26 @@ function speak(name) {
 
     window.speechSynthesis.cancel();
 
-    const text = name + "，請到門口";
-
+    const text = name + "，請到門口。";
     const utterance = new SpeechSynthesisUtterance(text);
 
     utterance.lang = "zh-TW";
     utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 1;
 
     window.speechSynthesis.speak(utterance);
 }
 
-
+function getCardClass(status) {
+    if (status === "收拾書包") return "packing";
+    if (status === "5–10分鐘") return "later";
+    if (status === "已下樓") return "ready";
+    if (status === "提醒中") return "alert";
+    return "waiting";
+}
 
 async function loadQueue() {
-
     const res = await fetch('/api/queue');
     const data = await res.json();
 
@@ -136,57 +173,55 @@ async function loadQueue() {
     list.innerHTML = '';
 
     if (data.length === 0) {
-
-        list.innerHTML =
-        '<div class="empty">目前沒有等待接送的學生</div>';
-
+        list.innerHTML = '<div class="empty">目前沒有等待接送的學生</div>';
         return;
     }
 
     data.forEach((item, index) => {
-
         const card = document.createElement('div');
-        card.className = 'card';
 
         const studentName = item.student_name;
+        const englishName = item.english_name || "";
+        const className = item.class_name || "未填";
+        const status = item.status || "等待處理";
+        const statusText = item.status_text || "等待老師處理";
+        const updatedAt = item.updated_at || "";
+
+        card.className = "card " + getCardClass(status);
 
         card.innerHTML = `
-
-        <div>
-
-            <div class="number">
-                ${index + 1}
+            <div>
+                <div class="number">${index + 1}</div>
+                <div class="name">${studentName} ${englishName}</div>
+                <div class="info">班級：${className}｜更新：${updatedAt}</div>
+                <div class="status">${statusText}</div>
             </div>
 
-            <div class="name">
-                ${studentName}
+            <div>
+                <button class="call" onclick="manualCall(${index}, '${studentName}')">
+                    🔊 手動叫號
+                </button>
             </div>
-
-        </div>
-
-        <div>
-
-            <button class="call"
-                onclick="callStudent(${index}, '${studentName}')">
-
-                🔊 叫號
-
-            </button>
-
-        </div>
-
         `;
 
         list.appendChild(card);
 
-    });
+        if (item.announce === true && !announcedStudents.has(studentName)) {
+            announcedStudents.add(studentName);
 
+            speak(studentName);
+
+            setTimeout(async () => {
+                await fetch(`/api/announced/${encodeURIComponent(studentName)}`, {
+                    method: 'POST'
+                });
+                loadQueue();
+            }, 3000);
+        }
+    });
 }
 
-
-
-async function callStudent(index, name) {
-
+async function manualCall(index, name) {
     speak(name);
 
     await fetch(`/api/call/${index}`, {
@@ -194,13 +229,9 @@ async function callStudent(index, name) {
     });
 
     loadQueue();
-
 }
 
-
-
 async function clearQueue() {
-
     if (!confirm("確定清空全部？")) return;
 
     await fetch('/api/clear', {
@@ -208,17 +239,11 @@ async function clearQueue() {
     });
 
     loadQueue();
-
 }
 
-
-
 loadQueue();
-
 setInterval(loadQueue, 3000);
-
 </script>
 
 </body>
-
 </html>
