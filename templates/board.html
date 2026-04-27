@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
 <meta charset="UTF-8">
-<title>PiXiE V9 語音接送叫號看板</title>
+<title>PiXiE 接送叫號看板</title>
 
 <style>
+
 body {
     margin: 0;
     font-family: "Microsoft JhengHei", sans-serif;
@@ -15,7 +17,7 @@ body {
     background: #6b4f3f;
     color: white;
     padding: 20px;
-    font-size: 30px;
+    font-size: 32px;
     text-align: center;
     font-weight: bold;
 }
@@ -40,38 +42,22 @@ body {
     font-weight: bold;
 }
 
-.info {
-    font-size: 16px;
-    color: #666;
-    margin-top: 6px;
-}
-
-.status {
-    font-size: 22px;
-    color: #b35c00;
+.number {
+    font-size: 40px;
     font-weight: bold;
-    margin-top: 8px;
+    color: #b35c00;
 }
 
 button {
-    padding: 12px 18px;
+    padding: 14px 20px;
     border: none;
     border-radius: 12px;
-    margin-left: 6px;
     cursor: pointer;
-    font-size: 17px;
+    font-size: 20px;
 }
 
 .call {
     background: #f6c453;
-}
-
-.done {
-    background: #7acb7a;
-}
-
-.cancel {
-    background: #e98b8b;
 }
 
 .clear {
@@ -94,6 +80,7 @@ button {
     margin-bottom: 16px;
     font-size: 16px;
 }
+
 </style>
 
 </head>
@@ -101,135 +88,137 @@ button {
 <body>
 
 <div class="header">
-PiXiE V9｜語音接送叫號看板
+PiXiE 接送語音叫號看板
 </div>
 
 <div class="container">
 
 <div class="notice">
-🔊 老師按「叫號」後，系統會播放：「學生姓名，請到門口。」<br>
-iPad 第一次使用時，請先手動按一次叫號，瀏覽器才會允許播放聲音。
+🔊 按「叫號」會播放學生姓名<br>
+家長只有在老師按叫號時才會收到通知
 </div>
 
-<button class="clear" onclick="clearAll()">清空全部</button>
+<button class="clear" onclick="clearQueue()">清空全部</button>
 
 <div id="list"></div>
 
 </div>
 
 <script>
-function speakStudent(name) {
+
+function speak(name) {
+
     if (!("speechSynthesis" in window)) {
-        alert("這台裝置不支援語音播放，請改用 Chrome 或 Safari。");
+        alert("此裝置不支援語音");
         return;
     }
 
     window.speechSynthesis.cancel();
 
-    const text = name + "，請到門口。";
+    const text = name + "，請到門口";
+
     const utterance = new SpeechSynthesisUtterance(text);
 
     utterance.lang = "zh-TW";
-    utterance.rate = 0.85;
-    utterance.pitch = 1;
-    utterance.volume = 1;
+    utterance.rate = 0.9;
 
     window.speechSynthesis.speak(utterance);
 }
 
-async function loadPickups() {
-    const res = await fetch('/api/pickups');
+
+
+async function loadQueue() {
+
+    const res = await fetch('/api/queue');
     const data = await res.json();
 
     const list = document.getElementById('list');
     list.innerHTML = '';
 
     if (data.length === 0) {
-        list.innerHTML = '<div class="empty">目前沒有等待接送的學生</div>';
+
+        list.innerHTML =
+        '<div class="empty">目前沒有等待接送的學生</div>';
+
         return;
     }
 
-    data.forEach(item => {
+    data.forEach((item, index) => {
+
         const card = document.createElement('div');
         card.className = 'card';
 
-        const studentName = item["學生姓名"] || "";
-        const englishName = item["英文姓名"] || "";
-        const className = item["班級"] || "未填";
-        const status = item["狀態"] || "等待叫號";
-        const time = item["通知時間"] || "";
+        const studentName = item.student_name;
 
         card.innerHTML = `
-            <div>
-                <div class="name">${studentName} ${englishName}</div>
-                <div class="info">班級：${className}｜通知時間：${time}</div>
-                <div class="status">${status}</div>
+
+        <div>
+
+            <div class="number">
+                ${index + 1}
             </div>
 
-            <div>
-                <button class="call" onclick="callPickup('${item.id}', '${studentName}')">
-                    🔊 叫號
-                </button>
-
-                <button class="done" onclick="donePickup('${item.id}')">
-                    完成
-                </button>
-
-                <button class="cancel" onclick="cancelPickup('${item.id}')">
-                    取消
-                </button>
+            <div class="name">
+                ${studentName}
             </div>
+
+        </div>
+
+        <div>
+
+            <button class="call"
+                onclick="callStudent(${index}, '${studentName}')">
+
+                🔊 叫號
+
+            </button>
+
+        </div>
+
         `;
 
         list.appendChild(card);
-    });
-}
 
-async function callPickup(id, name) {
-    speakStudent(name);
-
-    await fetch('/api/pickup/call', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id})
     });
 
-    loadPickups();
 }
 
-async function donePickup(id) {
-    await fetch('/api/pickup/done', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id})
-    });
 
-    loadPickups();
-}
 
-async function cancelPickup(id) {
-    await fetch('/api/pickup/cancel', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id})
-    });
+async function callStudent(index, name) {
 
-    loadPickups();
-}
+    speak(name);
 
-async function clearAll() {
-    if (!confirm("確定要清空全部接送資料？")) return;
-
-    await fetch('/api/pickup/clear', {
+    await fetch(`/api/call/${index}`, {
         method: 'POST'
     });
 
-    loadPickups();
+    loadQueue();
+
 }
 
-loadPickups();
-setInterval(loadPickups, 3000);
+
+
+async function clearQueue() {
+
+    if (!confirm("確定清空全部？")) return;
+
+    await fetch('/api/clear', {
+        method: 'POST'
+    });
+
+    loadQueue();
+
+}
+
+
+
+loadQueue();
+
+setInterval(loadQueue, 3000);
+
 </script>
 
 </body>
+
 </html>
