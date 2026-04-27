@@ -1,7 +1,9 @@
 import os
 import csv
 import json
+import time
 import requests
+from datetime import datetime, timezone, timedelta
 from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
@@ -14,10 +16,12 @@ STUDENTS_FILE = "students.csv"
 pickup_queue = []
 last_event_info = {}
 
+TAIWAN_TZ = timezone(timedelta(hours=8))
 
-# =========================
-# 讀學生名單
-# =========================
+
+def now_text():
+    return datetime.now(TAIWAN_TZ).strftime("%H:%M:%S")
+
 
 def load_students():
     students = []
@@ -41,19 +45,10 @@ def load_students():
                     "class_name": class_name
                 })
 
-    print(f"📋 載入學生數量：{len(students)}")
     return students
 
 
-# =========================
-# LINE 一般推播
-# =========================
-
 def push_to_line(to_id, message):
-    print("📤 發送 LINE")
-    print("to_id:", to_id)
-    print("message:", message)
-
     if not LINE_CHANNEL_ACCESS_TOKEN:
         print("❌ 沒有 LINE_CHANNEL_ACCESS_TOKEN")
         return False
@@ -80,24 +75,13 @@ def push_to_line(to_id, message):
     }
 
     r = requests.post(url, headers=headers, data=json.dumps(data))
-
     print("📨 LINE status:", r.status_code)
     print("📨 response:", r.text)
 
     return r.status_code == 200
 
 
-# =========================
-# 老師群組快速選項
-# =========================
-
 def send_teacher_quick_reply(group_id, student_name, english_name="", class_name=""):
-    print("📤 發送老師群組快速選項")
-
-    if not LINE_CHANNEL_ACCESS_TOKEN:
-        print("❌ 沒有 LINE_CHANNEL_ACCESS_TOKEN")
-        return False
-
     if not group_id:
         print("❌ 沒有 TEACHER_GROUP_ID")
         return False
@@ -167,16 +151,11 @@ def send_teacher_quick_reply(group_id, student_name, english_name="", class_name
     }
 
     r = requests.post(url, headers=headers, data=json.dumps(data))
-
     print("📨 QuickReply status:", r.status_code)
     print("📨 QuickReply response:", r.text)
 
     return r.status_code == 200
 
-
-# =========================
-# 找 queue 裡的學生
-# =========================
 
 def find_queue_student(student_name):
     for item in pickup_queue:
@@ -193,52 +172,47 @@ def remove_queue_student(student_name):
     ]
 
 
-# =========================
-# 首頁
-# =========================
+def check_time_reminders():
+    now = time.time()
+
+    for item in pickup_queue:
+        if item.get("status") == "5–10分鐘" and item.get("remind_at"):
+            if now >= item["remind_at"] and not item.get("reminder_sent"):
+                item["reminder_sent"] = True
+                item["status"] = "提醒中"
+                item["status_text"] = "⏰ 已超過 10 分鐘，請老師再次確認"
+
+                if TEACHER_GROUP_ID:
+                    push_to_line(
+                        TEACHER_GROUP_ID,
+                        f"⏰ 接送提醒\n學生：{item['student_name']}\n剛剛已選擇 5–10 分鐘，現在請老師再次確認。"
+                    )
+
 
 @app.route("/")
 def home():
-    return "PiXiE 接送系統 V14 運作中"
+    return "PiXiE 接送系統 V15 自動叫號＋時間提醒版 運作中"
 
-
-# =========================
-# Debug
-# =========================
 
 @app.route("/debug")
 def debug():
     return jsonify(last_event_info)
 
 
-# =========================
-# 看板
-# =========================
-
 @app.route("/board")
 def board():
     return render_template("board.html")
 
 
-# =========================
-# Queue API
-# =========================
-
 @app.route("/api/queue")
 def api_queue():
+    check_time_reminders()
     return jsonify(pickup_queue)
 
 
-# =========================
-# 看板叫號
-# =========================
-
 @app.route("/api/call/<int:index>", methods=["POST"])
 def call_student(index):
-    print("🔔 看板叫號")
-
     if index < 0 or index >= len(pickup_queue):
-        print("❌ index 錯誤")
         return jsonify({"success": False})
 
     item = pickup_queue[index]
@@ -250,8 +224,6 @@ def call_student(index):
 
     if user_id:
         push_to_line(user_id, message)
-    else:
-        print("❌ 沒有家長 user_id")
 
     pickup_queue.pop(index)
 
@@ -261,27 +233,23 @@ def call_student(index):
     })
 
 
-# =========================
-# 清空
-# =========================
+@app.route("/api/announced/<student_name>", methods=["POST"])
+def announced_student(student_name):
+    remove_queue_student(student_name)
+    return jsonify({"success": True})
+
 
 @app.route("/api/clear", methods=["POST"])
 def clear_queue():
     pickup_queue.clear()
-    print("🧹 已清空 queue")
     return jsonify({"success": True})
 
-
-# =========================
-# LINE Webhook
-# =========================
 
 @app.route("/callback", methods=["POST"])
 def callback():
     global last_event_info
 
     body = request.get_json()
-    print("📩 webhook 收到")
 
     if not body:
         return "OK"
@@ -318,9 +286,8 @@ def callback():
         print("👥 group_id:", group_id)
 
         # =========================
-        # 老師群組按選項
+        # 老師群組選項
         # =========================
-
         if source_type == "group":
             for student in students:
                 student_name = student["name"]
@@ -329,29 +296,43 @@ def callback():
                     item = find_queue_student(student_name)
 
                     if not item:
-                        print("⚠️ 群組回覆，但 queue 找不到學生:", student_name)
+                        print("⚠️ queue 找不到學生:", student_name)
                         break
 
                     parent_user_id = item.get("user_id", "")
 
                     if "收拾書包" in text:
+                        item["status"] = "收拾書包"
+                        item["status_text"] = "🎒 正在收拾書包"
+                        item["updated_at"] = now_text()
+
                         push_to_line(
                             parent_user_id,
                             f"{student_name} 正在收拾書包，請稍候。"
                         )
 
                     elif "5到10分鐘" in text or "5-10分鐘" in text or "5–10分鐘" in text:
+                        item["status"] = "5–10分鐘"
+                        item["status_text"] = "⏳ 約 5–10 分鐘"
+                        item["updated_at"] = now_text()
+                        item["remind_at"] = time.time() + 600
+                        item["reminder_sent"] = False
+
                         push_to_line(
                             parent_user_id,
                             f"{student_name} 約 5–10 分鐘後可以下樓，請稍候。"
                         )
 
                     elif "已下樓" in text:
+                        item["status"] = "已下樓"
+                        item["status_text"] = "🚶 已下樓，自動叫號中"
+                        item["updated_at"] = now_text()
+                        item["announce"] = True
+
                         push_to_line(
                             parent_user_id,
                             f"{student_name} 已經下樓，請到門口接送。"
                         )
-                        remove_queue_student(student_name)
 
                     elif "取消接送" in text or "取消" in text:
                         push_to_line(
@@ -365,9 +346,8 @@ def callback():
             return "OK"
 
         # =========================
-        # 家長私訊：接學生姓名
+        # 家長私訊：接學生
         # =========================
-
         if "接" in text:
             matched_student = None
 
@@ -381,8 +361,6 @@ def callback():
                 english_name = matched_student.get("english_name", "")
                 class_name = matched_student.get("class_name", "")
 
-                print("✅ 找到學生:", student_name)
-
                 already_exists = any(
                     item["student_name"] == student_name
                     for item in pickup_queue
@@ -393,10 +371,15 @@ def callback():
                         "student_name": student_name,
                         "english_name": english_name,
                         "class_name": class_name,
-                        "user_id": user_id
+                        "user_id": user_id,
+                        "status": "等待處理",
+                        "status_text": "等待老師處理",
+                        "created_at": now_text(),
+                        "updated_at": now_text(),
+                        "announce": False,
+                        "remind_at": None,
+                        "reminder_sent": False
                     })
-
-                    print("📥 加入 queue:", student_name)
 
                     if TEACHER_GROUP_ID:
                         send_teacher_quick_reply(
@@ -405,9 +388,6 @@ def callback():
                             english_name,
                             class_name
                         )
-                    else:
-                        print("⚠️ 尚未設定 TEACHER_GROUP_ID")
-
                 else:
                     print("⚠️ 已在 queue，不重複加入")
 
@@ -416,10 +396,6 @@ def callback():
 
     return "OK"
 
-
-# =========================
-# 啟動
-# =========================
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
