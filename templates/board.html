@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<title>PiXiE V9 接送叫號看板</title>
+<title>PiXiE V9 語音接送叫號看板</title>
 
 <style>
 body {
@@ -26,31 +26,40 @@ body {
 
 .card {
     background: white;
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 15px;
+    border-radius: 18px;
+    padding: 22px;
+    margin-bottom: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
 }
 
 .name {
-    font-size: 30px;
+    font-size: 34px;
     font-weight: bold;
 }
 
+.info {
+    font-size: 16px;
+    color: #666;
+    margin-top: 6px;
+}
+
 .status {
-    font-size: 20px;
+    font-size: 22px;
     color: #b35c00;
+    font-weight: bold;
+    margin-top: 8px;
 }
 
 button {
-    padding: 10px 16px;
+    padding: 12px 18px;
     border: none;
-    border-radius: 10px;
-    margin-left: 5px;
+    border-radius: 12px;
+    margin-left: 6px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 17px;
 }
 
 .call {
@@ -68,7 +77,22 @@ button {
 .clear {
     background: black;
     color: white;
-    margin-bottom: 15px;
+    margin-bottom: 18px;
+}
+
+.empty {
+    text-align: center;
+    font-size: 28px;
+    color: #777;
+    margin-top: 80px;
+}
+
+.notice {
+    background: #fff7d6;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    font-size: 16px;
 }
 </style>
 
@@ -77,10 +101,15 @@ button {
 <body>
 
 <div class="header">
-PiXiE V9｜接送叫號看板
+PiXiE V9｜語音接送叫號看板
 </div>
 
 <div class="container">
+
+<div class="notice">
+🔊 老師按「叫號」後，系統會播放：「學生姓名，請到門口。」<br>
+iPad 第一次使用時，請先手動按一次叫號，瀏覽器才會允許播放聲音。
+</div>
 
 <button class="clear" onclick="clearAll()">清空全部</button>
 
@@ -89,58 +118,75 @@ PiXiE V9｜接送叫號看板
 </div>
 
 <script>
+function speakStudent(name) {
+    if (!("speechSynthesis" in window)) {
+        alert("這台裝置不支援語音播放，請改用 Chrome 或 Safari。");
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const text = name + "，請到門口。";
+    const utterance = new SpeechSynthesisUtterance(text);
+
+    utterance.lang = "zh-TW";
+    utterance.rate = 0.85;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    window.speechSynthesis.speak(utterance);
+}
 
 async function loadPickups() {
-
     const res = await fetch('/api/pickups');
     const data = await res.json();
 
     const list = document.getElementById('list');
     list.innerHTML = '';
 
-    data.forEach(item => {
+    if (data.length === 0) {
+        list.innerHTML = '<div class="empty">目前沒有等待接送的學生</div>';
+        return;
+    }
 
+    data.forEach(item => {
         const card = document.createElement('div');
         card.className = 'card';
 
+        const studentName = item["學生姓名"] || "";
+        const englishName = item["英文姓名"] || "";
+        const className = item["班級"] || "未填";
+        const status = item["狀態"] || "等待叫號";
+        const time = item["通知時間"] || "";
+
         card.innerHTML = `
             <div>
-                <div class="name">
-                ${item["學生姓名"]}
-                </div>
-
-                <div class="status">
-                ${item["狀態"]}
-                </div>
+                <div class="name">${studentName} ${englishName}</div>
+                <div class="info">班級：${className}｜通知時間：${time}</div>
+                <div class="status">${status}</div>
             </div>
 
             <div>
-
-                <button class="call"
-                onclick="callPickup('${item.id}')">
-                叫號
+                <button class="call" onclick="callPickup('${item.id}', '${studentName}')">
+                    🔊 叫號
                 </button>
 
-                <button class="done"
-                onclick="donePickup('${item.id}')">
-                完成
+                <button class="done" onclick="donePickup('${item.id}')">
+                    完成
                 </button>
 
-                <button class="cancel"
-                onclick="cancelPickup('${item.id}')">
-                取消
+                <button class="cancel" onclick="cancelPickup('${item.id}')">
+                    取消
                 </button>
-
             </div>
         `;
 
         list.appendChild(card);
-
     });
-
 }
 
-async function callPickup(id) {
+async function callPickup(id, name) {
+    speakStudent(name);
 
     await fetch('/api/pickup/call', {
         method: 'POST',
@@ -152,7 +198,6 @@ async function callPickup(id) {
 }
 
 async function donePickup(id) {
-
     await fetch('/api/pickup/done', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -163,7 +208,6 @@ async function donePickup(id) {
 }
 
 async function cancelPickup(id) {
-
     await fetch('/api/pickup/cancel', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -174,6 +218,7 @@ async function cancelPickup(id) {
 }
 
 async function clearAll() {
+    if (!confirm("確定要清空全部接送資料？")) return;
 
     await fetch('/api/pickup/clear', {
         method: 'POST'
@@ -183,9 +228,7 @@ async function clearAll() {
 }
 
 loadPickups();
-
 setInterval(loadPickups, 3000);
-
 </script>
 
 </body>
