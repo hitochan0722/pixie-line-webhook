@@ -2,136 +2,214 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<title>PiXiE V9 請假統計</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>請假申請｜皮克西共學教育</title>
 <style>
-
-body {
-    margin: 0;
-    font-family: "Microsoft JhengHei", sans-serif;
-    background: #f7f5ef;
+:root{
+  --navy:#252b5f;
+  --cream:#fffaf2;
+  --yellow:#fff2a8;
+  --pink:#f08a9c;
+  --pink2:#f6b4bf;
+  --blue:#7b84c5;
 }
-
-.header {
-    background: #4f6b5f;
-    color: white;
-    padding: 20px;
-    text-align: center;
-    font-size: 30px;
-    font-weight: bold;
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--cream);
+  color:var(--navy);
+  font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;
 }
-
-.container {
-    padding: 20px;
+.page{
+  min-height:100vh;
+  max-width:900px;
+  margin:0 auto;
+  padding:24px 18px 34px;
+  border:4px solid var(--pink2);
+  border-radius:30px;
 }
-
-.box {
-    background: white;
-    padding: 20px;
-    margin-bottom: 20px;
-    border-radius: 15px;
-    text-align: center;
+.brand{
+  text-align:center;
+  margin:18px 0 28px;
 }
-
-.num {
-    font-size: 40px;
-    font-weight: bold;
-    color: #4f6b5f;
+.brand-title-wrap{
+  display:inline-block;
+  background:var(--navy);
+  padding:13px 34px 17px;
+  border-radius:28px 34px 30px 32px;
+  transform:rotate(-1.5deg);
+  box-shadow:2px 2px 0 rgba(37,43,95,.35);
 }
-
-table {
-    width: 100%;
-    background: white;
-    border-collapse: collapse;
+.brand-title{
+  color:var(--yellow);
+  font-size:clamp(34px,8vw,58px);
+  font-weight:900;
+  letter-spacing:4px;
 }
-
-th, td {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-    text-align: center;
+.brand-sub{
+  display:inline-block;
+  margin-top:-2px;
+  background:var(--yellow);
+  color:var(--navy);
+  padding:8px 26px;
+  border-radius:15px;
+  font-size:clamp(22px,5vw,36px);
+  font-weight:900;
 }
-
-th {
-    background: #e2eadf;
+.card{
+  position:relative;
+  background:#fffdfa;
+  border:4px solid var(--navy);
+  border-radius:34px;
+  padding:24px;
+  max-width:680px;
+  margin:0 auto 18px;
+  box-shadow:2px 2px 0 rgba(37,43,95,.18);
 }
-
+.card:before{
+  content:"";
+  position:absolute;
+  inset:-4px;
+  border:3px solid var(--navy);
+  border-radius:38px 32px 36px 34px;
+  transform:rotate(.4deg);
+  pointer-events:none;
+}
+.title{
+  font-size:clamp(34px,8vw,50px);
+  font-weight:900;
+  text-align:center;
+  letter-spacing:2px;
+}
+.line{
+  width:68%;
+  height:4px;
+  background:var(--pink);
+  border-radius:99px;
+  margin:14px auto 20px;
+}
+label{
+  display:block;
+  font-size:20px;
+  font-weight:900;
+  margin-top:16px;
+  margin-bottom:8px;
+}
+input, select, textarea{
+  width:100%;
+  border:4px solid var(--navy);
+  border-radius:22px;
+  padding:16px;
+  font-size:20px;
+  font-weight:800;
+  background:#fffdfa;
+  color:#333;
+}
+textarea{
+  min-height:110px;
+  resize:vertical;
+}
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+.btn{
+  display:block;
+  width:100%;
+  margin-top:20px;
+  border:0;
+  border-radius:24px;
+  padding:18px;
+  background:var(--pink);
+  color:white;
+  font-size:26px;
+  font-weight:900;
+  text-align:center;
+  text-decoration:none;
+}
+.back{
+  background:var(--navy);
+  color:var(--yellow);
+}
+.note{
+  margin-top:14px;
+  font-size:16px;
+  line-height:1.7;
+  color:#555;
+  font-weight:700;
+  text-align:center;
+}
+@media(max-width:700px){
+  .page{border:0;border-radius:0;padding:18px 14px 28px;}
+  .row{grid-template-columns:1fr;}
+}
 </style>
-
 </head>
-
 <body>
+<div class="page">
+  <div class="brand">
+    <div class="brand-title-wrap"><div class="brand-title">皮克西共學教育</div></div><br>
+    <div class="brand-sub">PiXiE Education</div>
+  </div>
 
-<div class="header">
-PiXiE V9｜請假統計
-</div>
+  <div class="card">
+    <div class="title">請假申請</div>
+    <div class="line"></div>
 
-<div class="container">
+    <form onsubmit="submitLeave(event)">
+      <label>學生姓名</label>
+      <input id="studentName" placeholder="請輸入學生姓名">
 
-<div class="box">
-今日請假：
-<div class="num" id="today_count">0</div>
-</div>
+      <div class="row">
+        <div>
+          <label>請假日期</label>
+          <input id="leaveDate" type="date">
+        </div>
+        <div>
+          <label>請假類型</label>
+          <select id="leaveType">
+            <option value="">請選擇</option>
+            <option>病假</option>
+            <option>事假</option>
+            <option>其他</option>
+          </select>
+        </div>
+      </div>
 
-<div class="box">
-本月請假：
-<div class="num" id="month_count">0</div>
-</div>
+      <label>請假原因</label>
+      <textarea id="reason" placeholder="請簡單填寫原因"></textarea>
 
-<table>
+      <label>家長聯絡電話</label>
+      <input id="phone" placeholder="例如：0912-345-678">
 
-<thead>
-<tr>
-<th>日期</th>
-<th>學生</th>
-<th>班級</th>
-<th>假別</th>
-<th>收到時間</th>
-</tr>
-</thead>
+      <button class="btn" type="submit">送出請假申請</button>
+    </form>
 
-<tbody id="leave_rows"></tbody>
+    <div id="status" class="note">
+      送出後請等待老師確認。
+    </div>
 
-</table>
-
+    <a class="btn back" href="/parent">返回家長專區</a>
+  </div>
 </div>
 
 <script>
+function submitLeave(event){
+  event.preventDefault();
 
-async function loadLeaves() {
+  const name = document.getElementById("studentName").value.trim();
+  const date = document.getElementById("leaveDate").value.trim();
+  const type = document.getElementById("leaveType").value.trim();
 
-    const res = await fetch('/api/leaves');
-    const data = await res.json();
+  if(!name || !date || !type){
+    document.getElementById("status").innerText = "請先填寫學生姓名、請假日期與請假類型。";
+    return;
+  }
 
-    document.getElementById('today_count').innerText =
-        data.today_count;
-
-    document.getElementById('month_count').innerText =
-        data.month_count;
-
-    const rows = document.getElementById('leave_rows');
-    rows.innerHTML = '';
-
-    data.rows.forEach(item => {
-
-        rows.innerHTML += `
-        <tr>
-        <td>${item["請假日期"]}</td>
-        <td>${item["學生姓名"]}</td>
-        <td>${item["班級"]}</td>
-        <td>${item["假別"]}</td>
-        <td>${item["收到時間"]}</td>
-        </tr>
-        `;
-
-    });
-
+  document.getElementById("status").innerText =
+    "✅ 已完成表單填寫。下一步可接上老師通知或 Google 表單紀錄。";
 }
-
-loadLeaves();
-
-setInterval(loadLeaves, 5000);
-
 </script>
-
 </body>
 </html>
