@@ -1,1 +1,177 @@
-<h1 style='text-align:center;'>接送通知（之後接系統）</h1>
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>接送通知</title>
+<style>
+:root{
+  --navy:#252b5f;
+  --cream:#fffaf2;
+  --yellow:#fff2a8;
+  --pink:#f08a9c;
+  --pink2:#f6b4bf;
+  --blue:#7b84c5;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--cream);
+  color:var(--navy);
+  font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;
+}
+.page{
+  min-height:100vh;
+  max-width:900px;
+  margin:0 auto;
+  padding:24px 18px 34px;
+  border:4px solid var(--pink2);
+  border-radius:30px;
+}
+.brand{
+  text-align:center;
+  margin:18px 0 30px;
+}
+.brand-title-wrap{
+  display:inline-block;
+  background:var(--navy);
+  padding:13px 34px 17px;
+  border-radius:28px 34px 30px 32px;
+  transform:rotate(-1.5deg);
+  box-shadow:2px 2px 0 rgba(37,43,95,.35);
+}
+.brand-title{
+  color:var(--yellow);
+  font-size:clamp(34px,8vw,58px);
+  font-weight:900;
+  letter-spacing:4px;
+}
+.brand-sub{
+  display:inline-block;
+  margin-top:-2px;
+  background:var(--yellow);
+  color:var(--navy);
+  padding:8px 26px;
+  border-radius:15px;
+  font-size:clamp(22px,5vw,36px);
+  font-weight:900;
+}
+.card{
+  position:relative;
+  background:#fffdfa;
+  border:4px solid var(--navy);
+  border-radius:34px;
+  padding:24px;
+  max-width:680px;
+  margin:0 auto 18px;
+  box-shadow:2px 2px 0 rgba(37,43,95,.18);
+}
+.card:before{
+  content:"";
+  position:absolute;
+  inset:-4px;
+  border:3px solid var(--navy);
+  border-radius:38px 32px 36px 34px;
+  transform:rotate(.4deg);
+  pointer-events:none;
+}
+.title{
+  font-size:clamp(34px,8vw,50px);
+  font-weight:900;
+  text-align:center;
+  letter-spacing:2px;
+}
+.line{
+  width:68%;
+  height:4px;
+  background:var(--pink);
+  border-radius:99px;
+  margin:14px auto 20px;
+}
+.notice{
+  font-size:22px;
+  line-height:1.8;
+  font-weight:800;
+  text-align:center;
+  color:#333;
+}
+.input{
+  width:100%;
+  border:4px solid var(--navy);
+  border-radius:22px;
+  padding:18px;
+  font-size:24px;
+  font-weight:800;
+  text-align:center;
+  margin-top:18px;
+  background:#fffdfa;
+}
+.btn{
+  display:block;
+  width:100%;
+  margin-top:18px;
+  border:0;
+  border-radius:24px;
+  padding:18px;
+  background:var(--pink);
+  color:white;
+  font-size:26px;
+  font-weight:900;
+  text-align:center;
+  text-decoration:none;
+}
+.back{
+  background:var(--navy);
+  color:var(--yellow);
+}
+.small{
+  margin-top:18px;
+  font-size:17px;
+  line-height:1.7;
+  color:#555;
+  text-align:center;
+  font-weight:700;
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="brand">
+    <div class="brand-title-wrap"><div class="brand-title">皮克西共學教育</div></div><br>
+    <div class="brand-sub">PiXiE Education</div>
+  </div>
+
+  <div class="card">
+    <div class="title">接送通知</div>
+    <div class="line"></div>
+
+    <div class="notice">
+      請輸入學生姓名後，按下方按鈕。<br>
+      下一步會接上正式接送系統，送出後會通知老師並同步看板廣播。
+    </div>
+
+    <input class="input" id="studentName" placeholder="請輸入學生姓名，例如：賴灝宇">
+
+    <button class="btn" onclick="previewPickup()">我要接送</button>
+
+    <div id="status" class="small">
+      目前這一頁是前台畫面版，正式送出功能需再接後端 API。
+    </div>
+
+    <a class="btn back" href="/parent">返回家長專區</a>
+  </div>
+</div>
+
+<script>
+function previewPickup(){
+  const name = document.getElementById("studentName").value.trim();
+  if(!name){
+    document.getElementById("status").innerText = "請先輸入學生姓名。";
+    return;
+  }
+  document.getElementById("status").innerText =
+    "已確認學生：" + name + "\\n下一步接上後端後，這裡會正式送出接送通知。";
+}
+</script>
+</body>
+</html>
