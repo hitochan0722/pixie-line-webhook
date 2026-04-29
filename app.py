@@ -210,7 +210,25 @@ def api_pickup():
             item["played"] = True
 
     return jsonify(new_items)
+@app.route("/api/send-pickup", methods=["POST"])
+def api_send_pickup():
+    data = request.get_json() or {}
+    student_name = (data.get("student_name") or "").strip()
+    parent_user_id = (data.get("parent_user_id") or "parent_portal").strip()
 
+    if not student_name:
+        return jsonify({
+            "ok": False,
+            "message": "請輸入學生姓名"
+        }), 400
+
+    item = add_pickup(student_name, parent_user_id)
+    notify_teacher(item)
+
+    return jsonify({
+        "ok": True,
+        "message": f"已收到 {student_name} 的接送通知，已同步通知老師與看板。"
+    })
 @app.route("/test-pickup")
 def test_pickup():
     item = add_pickup("賴灝宇", "test_parent")
