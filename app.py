@@ -201,7 +201,14 @@ def callback():
     return "OK"
 @app.route("/api/students")
 def api_students():
-    return jsonify(students)
+    names = []
+
+    for s in load_students():
+        name = get_student_name(s)
+        if name:
+            names.append(name)
+
+    return jsonify(names)
 @app.route("/api/pickup")
 def api_pickup():
     new_items = []
