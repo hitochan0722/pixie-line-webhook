@@ -6,6 +6,8 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+print("===== NEW VERSION WITH ENABLE BUTTON =====")
+
 CHANNEL_ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN")
 TEACHER_GROUP_ID = os.getenv("TEACHER_GROUP_ID")
 
@@ -24,6 +26,7 @@ def line_headers():
         "Authorization": f"Bearer {CHANNEL_ACCESS_TOKEN}"
     }
 
+
 def reply_to_line(reply_token, text):
 
     if not reply_token:
@@ -41,6 +44,7 @@ def reply_to_line(reply_token, text):
 
     requests.post(url, headers=line_headers(), json=payload)
 
+
 def push_to_line(to, messages):
 
     if not to:
@@ -54,6 +58,7 @@ def push_to_line(to, messages):
     }
 
     requests.post(url, headers=line_headers(), json=payload)
+
 
 # ======================
 # 學生資料
@@ -79,23 +84,6 @@ def load_students():
 
     return students
 
-def find_student_by_parent(user_id):
-
-    students = load_students()
-
-    for s in students:
-
-        pid = (
-            s.get("parent_user_id")
-            or s.get("家長LINE_ID")
-            or s.get("line_user_id")
-            or ""
-        ).strip()
-
-        if pid == user_id:
-            return s
-
-    return None
 
 def find_student_by_text(text):
 
@@ -114,6 +102,7 @@ def find_student_by_text(text):
 
     return None
 
+
 def get_student_name(student):
 
     return (
@@ -121,6 +110,7 @@ def get_student_name(student):
         or student.get("student_name")
         or "學生"
     )
+
 
 # ======================
 # 接送邏輯
@@ -146,46 +136,15 @@ def add_pickup(student_name, parent_id):
 
     return item
 
+
 def notify_teacher(item):
 
     student_name = item["student_name"]
     record_id = item["id"]
 
     message = {
-        "type": "template",
-        "altText": "接送通知",
-        "template": {
-            "type": "buttons",
-            "title": "接送通知",
-            "text": f"{student_name} 家長已到（已同步廣播）",
-            "actions": [
-
-                {
-                    "type": "postback",
-                    "label": "收拾書包",
-                    "data": f"action=packing&id={record_id}"
-                },
-
-                {
-                    "type": "postback",
-                    "label": "5–10分鐘",
-                    "data": f"action=wait&id={record_id}"
-                },
-
-                {
-                    "type": "postback",
-                    "label": "已下樓",
-                    "data": f"action=downstairs&id={record_id}"
-                },
-
-                {
-                    "type": "postback",
-                    "label": "取消",
-                    "data": f"action=cancel&id={record_id}"
-                }
-
-            ]
-        }
+        "type": "text",
+        "text": f"📢 {student_name} 家長已到（已同步廣播）"
     }
 
     push_to_line(
@@ -193,51 +152,6 @@ def notify_teacher(item):
         [message]
     )
 
-def handle_teacher_postback(event):
-
-    data = event["postback"]["data"]
-    reply_token = event["replyToken"]
-
-    params = {}
-
-    for part in data.split("&"):
-
-        if "=" in part:
-            k, v = part.split("=")
-            params[k] = v
-
-    action = params.get("action")
-    rid = params.get("id")
-
-    item = pickup_records.get(rid)
-
-    if not item:
-        return
-
-    student = item["student_name"]
-    parent = item["parent_user_id"]
-
-    if action == "packing":
-        msg = f"{student} 正在收拾書包。"
-
-    elif action == "wait":
-        msg = f"{student} 約 5–10 分鐘後下樓。"
-
-    elif action == "downstairs":
-        msg = f"{student} 已經下樓囉。"
-
-    elif action == "cancel":
-        msg = f"{student} 接送已取消。"
-
-    push_to_line(parent, [{
-        "type": "text",
-        "text": msg
-    }])
-
-    reply_to_line(
-        reply_token,
-        f"已通知家長：{msg}"
-    )
 
 # ======================
 # webhook
@@ -252,21 +166,15 @@ def callback():
 
     for event in events:
 
-        etype = event["type"]
-        source = event["source"]
-        user_id = source.get("userId")
-        reply_token = event.get("replyToken")
-
-        if etype == "message":
+        if event["type"] == "message":
 
             text = event["message"]["text"]
 
+            reply_token = event.get("replyToken")
+
             if text.startswith("接"):
 
-                student = find_student_by_parent(user_id)
-
-                if not student:
-                    student = find_student_by_text(text)
+                student = find_student_by_text(text)
 
                 if not student:
 
@@ -279,20 +187,17 @@ def callback():
 
                 name = get_student_name(student)
 
-                item = add_pickup(name, user_id)
+                item = add_pickup(name, "parent")
 
                 notify_teacher(item)
 
                 reply_to_line(
                     reply_token,
-                    f"{name} 已通知廣播。"
+                    f"{name} 已廣播通知。"
                 )
 
-        elif etype == "postback":
-
-            handle_teacher_postback(event)
-
     return "OK"
+
 
 # ======================
 # API
@@ -313,8 +218,9 @@ def api_pickup():
 
     return jsonify(new_items)
 
+
 # ======================
-# 看板（含啟用按鈕）
+# 看板
 # ======================
 
 @app.route("/board")
@@ -322,7 +228,7 @@ def board():
 
     return """
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html>
 
 <head>
 
@@ -481,16 +387,22 @@ check();
 
 """
 
+
 @app.route("/")
 def home():
 
     return "System Running"
-    @app.route("/version")
-def version():
-    return "NEW VERSION 2026-04-29 WITH ENABLE BUTTON"
 
+
+# ======================
+# 啟動
+# ======================
 
 if __name__ == "__main__":
-    print("===== NEW APP.PY 2026-04-29 VERSION =====")
+
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+
+    app.run(
+        host="0.0.0.0",
+        port=port
+    )
