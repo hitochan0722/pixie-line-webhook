@@ -14,7 +14,6 @@ STUDENTS_FILE = "students.csv"
 pickup_queue = []
 pickup_records = {}
 
-
 # ======================
 # LINE 基本
 # ======================
@@ -25,8 +24,8 @@ def line_headers():
         "Authorization": f"Bearer {CHANNEL_ACCESS_TOKEN}"
     }
 
-
 def reply_to_line(reply_token, text):
+
     if not reply_token:
         return
 
@@ -42,7 +41,6 @@ def reply_to_line(reply_token, text):
 
     requests.post(url, headers=line_headers(), json=payload)
 
-
 def push_to_line(to, messages):
 
     if not to:
@@ -57,7 +55,6 @@ def push_to_line(to, messages):
 
     requests.post(url, headers=line_headers(), json=payload)
 
-
 # ======================
 # 學生資料
 # ======================
@@ -69,9 +66,11 @@ def load_students():
     if not os.path.exists(STUDENTS_FILE):
         return students
 
-    with open(STUDENTS_FILE,
-              newline="",
-              encoding="utf-8-sig") as f:
+    with open(
+        STUDENTS_FILE,
+        newline="",
+        encoding="utf-8-sig"
+    ) as f:
 
         reader = csv.DictReader(f)
 
@@ -79,7 +78,6 @@ def load_students():
             students.append(row)
 
     return students
-
 
 def find_student_by_parent(user_id):
 
@@ -99,7 +97,6 @@ def find_student_by_parent(user_id):
 
     return None
 
-
 def find_student_by_text(text):
 
     students = load_students()
@@ -117,7 +114,6 @@ def find_student_by_text(text):
 
     return None
 
-
 def get_student_name(student):
 
     return (
@@ -125,7 +121,6 @@ def get_student_name(student):
         or student.get("student_name")
         or "學生"
     )
-
 
 # ======================
 # 接送邏輯
@@ -151,11 +146,9 @@ def add_pickup(student_name, parent_id):
 
     return item
 
-
 def notify_teacher(item):
 
     student_name = item["student_name"]
-
     record_id = item["id"]
 
     message = {
@@ -164,7 +157,7 @@ def notify_teacher(item):
         "template": {
             "type": "buttons",
             "title": "接送通知",
-            "text": f"{student_name} 家長已到\n已同步廣播",
+            "text": f"{student_name} 家長已到（已同步廣播）",
             "actions": [
 
                 {
@@ -200,11 +193,9 @@ def notify_teacher(item):
         [message]
     )
 
-
 def handle_teacher_postback(event):
 
     data = event["postback"]["data"]
-
     reply_token = event["replyToken"]
 
     params = {}
@@ -224,7 +215,6 @@ def handle_teacher_postback(event):
         return
 
     student = item["student_name"]
-
     parent = item["parent_user_id"]
 
     if action == "packing":
@@ -249,7 +239,6 @@ def handle_teacher_postback(event):
         f"已通知家長：{msg}"
     )
 
-
 # ======================
 # webhook
 # ======================
@@ -264,11 +253,8 @@ def callback():
     for event in events:
 
         etype = event["type"]
-
         source = event["source"]
-
         user_id = source.get("userId")
-
         reply_token = event.get("replyToken")
 
         if etype == "message":
@@ -299,7 +285,7 @@ def callback():
 
                 reply_to_line(
                     reply_token,
-                    f"{name} 已廣播通知老師。"
+                    f"{name} 已通知廣播。"
                 )
 
         elif etype == "postback":
@@ -307,7 +293,6 @@ def callback():
             handle_teacher_postback(event)
 
     return "OK"
-
 
 # ======================
 # API
@@ -328,9 +313,8 @@ def api_pickup():
 
     return jsonify(new_items)
 
-
 # ======================
-# 看板
+# 看板（含啟用按鈕）
 # ======================
 
 @app.route("/board")
@@ -338,50 +322,59 @@ def board():
 
     return """
 <!DOCTYPE html>
-<html>
+<html lang="zh-Hant">
 
 <head>
 
 <meta charset="UTF-8">
 
-<title>接送看板</title>
+<title>接送廣播</title>
 
 <style>
 
-body {
-
-font-family: Microsoft JhengHei;
-
-text-align: center;
-
-background: #fff7fb;
-
+body{
+font-family:Microsoft JhengHei;
+text-align:center;
+background:#fff7fb;
+margin:0;
 }
 
-.student {
-
-font-size: 90px;
-
-margin-top: 30px;
-
-color: #e8437c;
-
+.header{
+background:#f58ab0;
+color:white;
+padding:30px;
+font-size:42px;
+font-weight:bold;
 }
 
-.enable {
+.enable{
+margin-top:40px;
+padding:24px 60px;
+font-size:34px;
+background:#e8437c;
+color:white;
+border:none;
+border-radius:18px;
+font-weight:bold;
+}
 
-font-size: 30px;
+.student{
+margin-top:40px;
+font-size:110px;
+color:#e8437c;
+font-weight:bold;
+}
 
-padding: 20px 40px;
+.time{
+font-size:36px;
+margin-top:15px;
+color:#555;
+}
 
-background: #e8437c;
-
-color: white;
-
-border: none;
-
-border-radius: 12px;
-
+.status{
+margin-top:20px;
+font-size:24px;
+color:#555;
 }
 
 </style>
@@ -390,7 +383,11 @@ border-radius: 12px;
 
 <body>
 
-<h1>皮克西美語 接送廣播</h1>
+<div class="header">
+
+皮克西美語 接送廣播看板
+
+</div>
 
 <button class="enable" onclick="enableSound()">
 
@@ -398,11 +395,19 @@ border-radius: 12px;
 
 </button>
 
-<div id="student" class="student">
+<div class="status" id="status">
+
+請先按「啟用廣播」
+
+</div>
+
+<div class="student" id="student">
 
 等待通知
 
 </div>
+
+<div class="time" id="time"></div>
 
 <script>
 
@@ -412,11 +417,15 @@ function enableSound(){
 
 enabled=true;
 
-let u=new SpeechSynthesisUtterance("廣播啟用");
+speechSynthesis.cancel();
+
+let u=new SpeechSynthesisUtterance("廣播已啟用");
 
 u.lang="zh-TW";
 
 speechSynthesis.speak(u);
+
+document.getElementById("status").innerText="廣播已啟用";
 
 }
 
@@ -424,21 +433,23 @@ function speak(name){
 
 if(!enabled)return;
 
-let text=name+"，家長到了";
+speechSynthesis.cancel();
 
-let u=new SpeechSynthesisUtterance(text);
+setTimeout(function(){
+
+let u=new SpeechSynthesisUtterance(name+"，家長到了");
 
 u.lang="zh-TW";
 
-speechSynthesis.cancel();
-
 speechSynthesis.speak(u);
+
+},200);
 
 }
 
 async function check(){
 
-let r=await fetch("/api/pickup");
+let r=await fetch("/api/pickup?t="+Date.now());
 
 let data=await r.json();
 
@@ -447,6 +458,8 @@ if(data.length>0){
 data.forEach(item=>{
 
 document.getElementById("student").innerText=item.student_name;
+
+document.getElementById("time").innerText=item.time;
 
 speak(item.student_name);
 
@@ -458,6 +471,8 @@ speak(item.student_name);
 
 setInterval(check,2000);
 
+check();
+
 </script>
 
 </body>
@@ -465,7 +480,6 @@ setInterval(check,2000);
 </html>
 
 """
-
 
 @app.route("/")
 def home():
