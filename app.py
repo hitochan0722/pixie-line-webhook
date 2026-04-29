@@ -485,3 +485,12 @@ check();
 def home():
 
     return "System Running"
+    @app.route("/version")
+def version():
+    return "NEW VERSION 2026-04-29 WITH ENABLE BUTTON"
+
+
+if __name__ == "__main__":
+    print("===== NEW APP.PY 2026-04-29 VERSION =====")
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
