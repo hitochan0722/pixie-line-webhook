@@ -199,7 +199,9 @@ def callback():
             handle_postback(event)
 
     return "OK"
-
+@app.route("/api/students")
+def api_students():
+    return jsonify(students)
 @app.route("/api/pickup")
 def api_pickup():
     new_items = []
