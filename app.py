@@ -6,7 +6,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-print("===== PICKUP SYSTEM FINAL VERSION =====")
+print("===== PIXIE PICKUP FINAL SAFE VERSION =====")
 
 CHANNEL_ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN")
 TEACHER_GROUP_ID = os.getenv("TEACHER_GROUP_ID")
@@ -15,6 +15,10 @@ STUDENTS_FILE = "students.csv"
 pickup_queue = []
 pickup_records = {}
 
+
+# ======================
+# LINE 基本功能
+# ======================
 
 def line_headers():
     return {
@@ -27,33 +31,44 @@ def reply_to_line(reply_token, text):
     if not reply_token:
         return
 
-    requests.post(
-        "https://api.line.me/v2/bot/message/reply",
-        headers=line_headers(),
-        json={
-            "replyToken": reply_token,
-            "messages": [{"type": "text", "text": text}]
-        }
-    )
+    url = "https://api.line.me/v2/bot/message/reply"
+
+    payload = {
+        "replyToken": reply_token,
+        "messages": [
+            {
+                "type": "text",
+                "text": text
+            }
+        ]
+    }
+
+    res = requests.post(url, headers=line_headers(), json=payload)
+    print("REPLY STATUS:", res.status_code)
+    print("REPLY RESPONSE:", res.text)
 
 
 def push_to_line(to, messages):
     if not to:
-        print("沒有接收對象，push 取消")
+        print("PUSH FAILED: no target")
         return
 
-    res = requests.post(
-        "https://api.line.me/v2/bot/message/push",
-        headers=line_headers(),
-        json={
-            "to": to,
-            "messages": messages
-        }
-    )
+    url = "https://api.line.me/v2/bot/message/push"
 
-    print("LINE PUSH STATUS:", res.status_code)
-    print("LINE PUSH RESPONSE:", res.text)
+    payload = {
+        "to": to,
+        "messages": messages
+    }
 
+    res = requests.post(url, headers=line_headers(), json=payload)
+    print("PUSH TO:", to)
+    print("PUSH STATUS:", res.status_code)
+    print("PUSH RESPONSE:", res.text)
+
+
+# ======================
+# 學生資料
+# ======================
 
 def load_students():
     students = []
@@ -70,31 +85,48 @@ def load_students():
     return students
 
 
-def find_student_by_text(text):
-    students = load_students()
-
-    for s in students:
-        name = (
-            s.get("學生姓名")
-            or s.get("student_name")
-            or s.get("姓名")
-            or ""
-        ).strip()
-
-        if name and name in text:
-            return s
-
-    return None
-
-
 def get_student_name(student):
     return (
         student.get("學生姓名")
         or student.get("student_name")
         or student.get("姓名")
-        or "學生"
+        or ""
     ).strip()
 
+
+def find_student_by_text(text):
+    students = load_students()
+
+    for student in students:
+        name = get_student_name(student)
+
+        if name and name in text:
+            return student
+
+    return None
+
+
+def find_student_by_parent_id(user_id):
+    students = load_students()
+
+    for student in students:
+        parent_id = (
+            student.get("parent_user_id")
+            or student.get("家長LINE_ID")
+            or student.get("家長LINE ID")
+            or student.get("line_user_id")
+            or ""
+        ).strip()
+
+        if parent_id and parent_id == user_id:
+            return student
+
+    return None
+
+
+# ======================
+# 接送資料
+# ======================
 
 def add_pickup(student_name, parent_user_id):
     now = datetime.now().strftime("%H:%M:%S")
@@ -111,14 +143,20 @@ def add_pickup(student_name, parent_user_id):
     pickup_queue.append(item)
     pickup_records[record_id] = item
 
+    print("ADD PICKUP:", item)
+
     return item
 
 
-def notify_teacher(item):
+# ======================
+# 通知老師群組
+# ======================
+
+def notify_teacher_group(item):
     student_name = item["student_name"]
     record_id = item["id"]
 
-    print("TEACHER_GROUP_ID =", TEACHER_GROUP_ID)
+    print("TEACHER_GROUP_ID:", TEACHER_GROUP_ID)
 
     if not TEACHER_GROUP_ID:
         print("沒有 TEACHER_GROUP_ID，無法通知老師群組")
@@ -130,7 +168,7 @@ def notify_teacher(item):
         "template": {
             "type": "buttons",
             "title": "接送通知",
-            "text": f"{student_name} 家長已到\n廣播已播放，請老師確認狀態",
+            "text": f"{student_name} 家長已到\n系統已自動廣播3次\n請老師回報學生狀態",
             "actions": [
                 {
                     "type": "postback",
@@ -159,16 +197,20 @@ def notify_teacher(item):
     push_to_line(TEACHER_GROUP_ID, [message])
 
 
+# ======================
+# 老師按鈕回報
+# ======================
+
 def handle_teacher_postback(event):
-    data = event.get("postback", {}).get("data", "")
     reply_token = event.get("replyToken")
+    data = event.get("postback", {}).get("data", "")
 
     params = {}
 
     for part in data.split("&"):
         if "=" in part:
-            k, v = part.split("=", 1)
-            params[k] = v
+            key, value = part.split("=", 1)
+            params[key] = value
 
     action = params.get("action")
     record_id = params.get("id")
@@ -176,26 +218,45 @@ def handle_teacher_postback(event):
     item = pickup_records.get(record_id)
 
     if not item:
-        reply_to_line(reply_token, "找不到這筆接送資料，可能已過期。")
+        reply_to_line(reply_token, "找不到這筆接送資料，可能系統已重新啟動。")
         return
 
-    student = item["student_name"]
-    parent = item["parent_user_id"]
+    student_name = item["student_name"]
+    parent_user_id = item["parent_user_id"]
 
     if action == "packing":
-        msg = f"{student} 正在收拾書包。"
+        parent_msg = f"{student_name} 正在收拾書包，請稍候一下。"
+        teacher_msg = f"已回報家長：{student_name} 正在收拾書包。"
+
     elif action == "wait":
-        msg = f"{student} 約 5–10 分鐘後下樓。"
+        parent_msg = f"{student_name} 約 5–10 分鐘後下樓，請稍候。"
+        teacher_msg = f"已回報家長：{student_name} 約 5–10 分鐘後下樓。"
+
     elif action == "downstairs":
-        msg = f"{student} 已經下樓囉。"
+        parent_msg = f"{student_name} 已經下樓囉。"
+        teacher_msg = f"已回報家長：{student_name} 已經下樓。"
+
     elif action == "cancel":
-        msg = f"{student} 接送已取消。"
+        parent_msg = f"{student_name} 的接送通知已取消。"
+        teacher_msg = f"已回報家長：{student_name} 接送通知已取消。"
+
     else:
-        msg = f"{student} 狀態已更新。"
+        parent_msg = f"{student_name} 狀態已更新。"
+        teacher_msg = f"已回報家長：{student_name} 狀態已更新。"
 
-    push_to_line(parent, [{"type": "text", "text": msg}])
-    reply_to_line(reply_token, f"已通知家長：{msg}")
+    push_to_line(parent_user_id, [
+        {
+            "type": "text",
+            "text": parent_msg
+        }
+    ])
 
+    reply_to_line(reply_token, teacher_msg)
+
+
+# ======================
+# LINE Webhook
+# ======================
 
 @app.route("/callback", methods=["POST"])
 def callback():
@@ -206,28 +267,43 @@ def callback():
 
     for event in events:
         event_type = event.get("type")
+        reply_token = event.get("replyToken")
         source = event.get("source", {})
         user_id = source.get("userId")
-        reply_token = event.get("replyToken")
 
         if event_type == "message":
             message = event.get("message", {})
             text = message.get("text", "").strip()
 
+            if not text:
+                continue
+
             if text.startswith("接"):
-                student = find_student_by_text(text)
+                student = find_student_by_parent_id(user_id)
 
                 if not student:
-                    reply_to_line(reply_token, "請輸入：接＋學生姓名，例如：接賴灝宇")
+                    student = find_student_by_text(text)
+
+                if not student:
+                    reply_to_line(
+                        reply_token,
+                        "系統找不到學生，請輸入：接＋學生姓名，例如：接賴灝宇"
+                    )
                     continue
 
-                name = get_student_name(student)
+                student_name = get_student_name(student)
 
-                item = add_pickup(name, user_id)
+                item = add_pickup(student_name, user_id)
 
-                notify_teacher(item)
+                # 1. 加入看板廣播佇列
+                # 2. 通知老師群組
+                notify_teacher_group(item)
 
-                reply_to_line(reply_token, f"{name} 已廣播通知。")
+                # 3. 回訊息給家長
+                reply_to_line(
+                    reply_token,
+                    f"已收到 {student_name} 的接送通知，現場已同步廣播，請稍候老師回報。"
+                )
 
         elif event_type == "postback":
             handle_teacher_postback(event)
@@ -235,75 +311,119 @@ def callback():
     return "OK"
 
 
+# ======================
+# 看板 API
+# ======================
+
 @app.route("/api/pickup")
 def api_pickup():
     new_items = []
 
     for item in pickup_queue:
-        if not item["played"]:
+        if not item.get("played"):
             new_items.append(item)
             item["played"] = True
 
     return jsonify(new_items)
 
 
+@app.route("/api/queue")
+def api_queue():
+    return jsonify(pickup_queue[-30:])
+
+
+# ======================
+# 測試接送
+# ======================
+
+@app.route("/test-pickup")
+def test_pickup():
+    item = add_pickup("賴灝宇", "test_parent")
+    notify_teacher_group(item)
+    return "已送出測試接送：賴灝宇"
+
+
+# ======================
+# 廣播看板
+# ======================
+
 @app.route("/board")
 def board():
     return """
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
 <meta charset="UTF-8">
 <title>皮克西美語 接送廣播看板</title>
 
 <style>
-body{
+body {
     font-family: Microsoft JhengHei, Arial, sans-serif;
-    text-align:center;
-    background:#fff7fb;
-    margin:0;
+    text-align: center;
+    background: #fff7fb;
+    margin: 0;
 }
-.header{
-    background:#f58ab0;
-    color:white;
-    padding:30px;
-    font-size:42px;
-    font-weight:bold;
+
+.header {
+    background: #f58ab0;
+    color: white;
+    padding: 30px;
+    font-size: 42px;
+    font-weight: bold;
 }
-.sub{
-    font-size:24px;
-    margin-top:10px;
+
+.sub {
+    font-size: 24px;
+    margin-top: 10px;
 }
-.enable{
-    margin-top:40px;
-    padding:24px 60px;
-    font-size:34px;
-    background:#e8437c;
-    color:white;
-    border:none;
-    border-radius:18px;
-    font-weight:bold;
+
+.enable {
+    margin-top: 40px;
+    padding: 24px 60px;
+    font-size: 34px;
+    background: #e8437c;
+    color: white;
+    border: none;
+    border-radius: 18px;
+    font-weight: bold;
 }
-.student{
-    margin-top:40px;
-    font-size:110px;
-    color:#e8437c;
-    font-weight:bold;
+
+.status {
+    margin-top: 20px;
+    font-size: 26px;
+    color: #555;
 }
-.time{
-    font-size:36px;
-    margin-top:15px;
-    color:#555;
+
+.label {
+    margin-top: 50px;
+    font-size: 38px;
+    color: #777;
 }
-.status{
-    margin-top:20px;
-    font-size:24px;
-    color:#555;
+
+.student {
+    margin-top: 30px;
+    font-size: 110px;
+    color: #e8437c;
+    font-weight: bold;
 }
-.record-title{
-    margin-top:60px;
-    font-size:32px;
-    font-weight:bold;
+
+.time {
+    font-size: 36px;
+    margin-top: 15px;
+    color: #555;
+}
+
+.record-title {
+    margin-top: 60px;
+    font-size: 32px;
+    font-weight: bold;
+}
+
+.record {
+    margin-top: 18px;
+    font-size: 26px;
+    color: #333;
 }
 </style>
 </head>
@@ -319,16 +439,21 @@ body{
 
 <div class="status" id="status">請先按「啟用廣播」</div>
 
+<div class="label">目前接送學生</div>
+
 <div class="student" id="student">等待通知</div>
 
 <div class="time" id="time"></div>
 
 <div class="record-title">最近接送紀錄</div>
 
+<div id="records"></div>
+
 <script>
 let enabled = false;
+let records = [];
 
-function enableSound(){
+function enableSound() {
     enabled = true;
 
     speechSynthesis.cancel();
@@ -343,19 +468,21 @@ function enableSound(){
     document.getElementById("status").innerText = "廣播已啟用";
 }
 
-function speak(name){
-    if(!enabled){
+function speak(name) {
+    if (!enabled) {
         document.getElementById("status").innerText = "請先按「啟用廣播」";
         return;
     }
 
     speechSynthesis.cancel();
 
-    let text = name + "，家長到了";
+    let text = name + "，家長到了，請準備放學";
     let count = 0;
 
-    function speakOnce(){
-        if(count >= 3) return;
+    function speakOnce() {
+        if (count >= 3) {
+            return;
+        }
 
         let u = new SpeechSynthesisUtterance(text);
         u.lang = "zh-TW";
@@ -364,41 +491,61 @@ function speak(name){
 
         speechSynthesis.speak(u);
 
-        count++;
+        count = count + 1;
 
-        if(count < 3){
-            setTimeout(speakOnce, 2200);
+        if (count < 3) {
+            setTimeout(speakOnce, 2300);
         }
     }
 
     setTimeout(speakOnce, 200);
 }
 
-async function check(){
-    try{
-        let r = await fetch("/api/pickup?t=" + Date.now());
-        let data = await r.json();
+function renderRecords() {
+    let box = document.getElementById("records");
+    box.innerHTML = "";
 
-        if(data.length > 0){
-            data.forEach(item => {
+    records.slice(0, 10).forEach(function(item) {
+        let div = document.createElement("div");
+        div.className = "record";
+        div.innerText = item.time + "　" + item.student_name;
+        box.appendChild(div);
+    });
+}
+
+async function checkPickup() {
+    try {
+        let res = await fetch("/api/pickup?t=" + Date.now());
+        let data = await res.json();
+
+        if (data.length > 0) {
+            data.forEach(function(item) {
                 document.getElementById("student").innerText = item.student_name;
                 document.getElementById("time").innerText = item.time;
+
+                records.unshift(item);
+                renderRecords();
+
                 speak(item.student_name);
             });
         }
-    }catch(e){
+    } catch (e) {
         console.log(e);
     }
 }
 
-setInterval(check, 2000);
-check();
+setInterval(checkPickup, 2000);
+checkPickup();
 </script>
 
 </body>
 </html>
 """
 
+
+# ======================
+# 首頁與版本
+# ======================
 
 @app.route("/")
 def home():
@@ -407,8 +554,12 @@ def home():
 
 @app.route("/version")
 def version():
-    return "FINAL PICKUP VERSION - ENABLE BUTTON - SPEAK THREE TIMES - TEACHER GROUP NOTICE"
+    return "PIXIE PICKUP FINAL SAFE VERSION: broadcast 3 times + teacher group + teacher reply + parent reply"
 
+
+# ======================
+# 啟動
+# ======================
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
