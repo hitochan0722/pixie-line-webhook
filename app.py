@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import os, csv, requests
 from datetime import datetime
 
@@ -390,7 +390,29 @@ checkPickup();
 </body>
 </html>
 """
+@app.route("/parent")
+def parent_page():
+    return render_template("parent.html")
 
+@app.route("/new")
+def new_page():
+    return render_template("new.html")
+
+@app.route("/parent/pickup")
+def parent_pickup_page():
+    return render_template("pickup.html")
+
+@app.route("/parent/leave")
+def parent_leave_page():
+    return render_template("leave.html")
+
+@app.route("/parent/attendance")
+def parent_attendance_page():
+    return render_template("attendance.html")
+
+@app.route("/contact")
+def contact_page():
+    return render_template("contact.html")
 @app.route("/")
 def home():
     return "PIXIE PICKUP SYSTEM RUNNING"
