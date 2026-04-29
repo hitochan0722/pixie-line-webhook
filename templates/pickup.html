@@ -150,7 +150,9 @@ body{
       下一步會接上正式接送系統，送出後會通知老師並同步看板廣播。
     </div>
 
-    <input class="input" id="studentName" placeholder="請輸入學生姓名，例如：賴灝宇">
+    <select class="input" id="studentName">
+  <option value="">請選擇學生</option>
+</select>
 
     <button class="btn" onclick="previewPickup()">我要接送</button>
 
@@ -163,15 +165,58 @@ body{
 </div>
 
 <script>
-function previewPickup(){
+async function loadStudents(){
+  try{
+    const res = await fetch("/api/students");
+    const students = await res.json();
+
+    const select = document.getElementById("studentName");
+
+    students.forEach(name=>{
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      select.appendChild(opt);
+    });
+
+  }catch(e){
+    console.log("學生名單載入失敗");
+  }
+}
+
+window.onload = loadStudents;
+  async function previewPickup(){
   const name = document.getElementById("studentName").value.trim();
+
   if(!name){
     document.getElementById("status").innerText = "請先輸入學生姓名。";
     return;
   }
-  document.getElementById("status").innerText =
-    "已確認學生：" + name + "\\n下一步接上後端後，這裡會正式送出接送通知。";
+
+  document.getElementById("status").innerText = "送出中，請稍候...";
+
+  try {
+    const res = await fetch("/api/send-pickup", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        student_name: name,
+        parent_user_id: "parent_portal"
+      })
+    });
+
+    const data = await res.json();
+
+    if(data.ok){
+      document.getElementById("status").innerText = "✅ " + data.message;
+    }else{
+      document.getElementById("status").innerText = "⚠️ " + data.message;
+    }
+
+  } catch(e) {
+    document.getElementById("status").innerText = "系統送出失敗，請稍後再試。";
+  }
 }
 </script>
-</body>
-</html>
