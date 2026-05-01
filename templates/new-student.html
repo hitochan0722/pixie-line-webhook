@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>皮克西美語｜問班資料填寫</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Noto Sans TC", Arial, sans-serif;
+      background: #fff7ef;
+      color: #333;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 28px 18px 40px;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 24px 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 26px;
+      margin: 0 0 8px;
+      color: #e28a4f;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 15px;
+      color: #777;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin: 16px 0 6px;
+      font-size: 15px;
+    }
+
+    input, textarea {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1.5px solid #ead8c8;
+      border-radius: 14px;
+      padding: 13px 14px;
+      font-size: 16px;
+      outline: none;
+      background: #fffdfb;
+    }
+
+    input:focus, textarea:focus {
+      border-color: #e28a4f;
+      background: #fffaf4;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 24px;
+      padding: 15px;
+      border: none;
+      border-radius: 18px;
+      background: #e28a4f;
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .note {
+      margin-top: 18px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #888;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>皮克西美語</h1>
+      <div class="subtitle">
+        歡迎填寫問班資料<br>
+        老師收到後會盡快與您聯繫
+      </div>
+
+      <form method="POST" action="/new-student-submit">
+        <label>學生姓名</label>
+        <input type="text" name="student_name" placeholder="請輸入學生姓名" required>
+
+        <label>就讀學校</label>
+        <input type="text" name="school" placeholder="例如：文山國小" required>
+
+        <label>學習經歷</label>
+        <textarea name="learning_experience" placeholder="例如：是否學過英文、目前程度、使用過的教材等"></textarea>
+
+        <label>家長姓名</label>
+        <input type="text" name="parent_name" placeholder="請輸入家長姓名" required>
+
+        <label>電話</label>
+        <input type="tel" name="phone" placeholder="請輸入聯絡電話" required>
+
+        <button type="submit">送出問班資料</button>
+      </form>
+
+      <div class="note">
+        資料僅供皮克西美語聯繫與課程安排使用。
+      </div>
+    </div>
+  </div>
+</body>
+</html>
