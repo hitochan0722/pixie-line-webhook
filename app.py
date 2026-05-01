@@ -443,7 +443,9 @@ def contact_page():
 @app.route("/")
 def home():
     return "PIXIE PICKUP SYSTEM RUNNING"
-
+@app.route("/new-student")
+def new_student():
+    return render_template("new-student.html")
 @app.route("/version")
 def version():
     return "PIXIE PICKUP EMBEDDED BOARD VERSION"
