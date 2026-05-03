@@ -459,17 +459,16 @@ def new_student_submit():
     parent_name = request.form.get("parent_name", "")
     phone = request.form.get("phone", "")
 
-data = {
-    "form_type": "new_student",
-    "student_name": student_name,
-    "school": school,
-    "learning_experience": learning_experience,
-    "parent_name": parent_name,
-    "phone": phone,
-    "source": "新生入口"
-}
+    data = {
+        "form_type": "new_student",
+        "student_name": student_name,
+        "school": school,
+        "learning_experience": learning_experience,
+        "parent_name": parent_name,
+        "phone": phone,
+        "source": "新生入口"
+    }
 
-    # 寫入 Google Sheet
     gas_url = os.getenv("NEW_STUDENT_GAS_URL")
     if gas_url:
         try:
