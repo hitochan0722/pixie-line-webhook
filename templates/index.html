@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>皮克西共學教育</title>
 
 <style>
@@ -12,6 +13,7 @@
   --cream:#fffaf2;
   --yellow:#fff2a8;
   --pink:#f08a9c;
+  --blue:#7b84c5;
 }
 
 body{
@@ -27,28 +29,31 @@ body{
   padding:24px 18px 40px;
 }
 
+/* LOGO */
+
 .brand{
   text-align:center;
-  margin-bottom:30px;
+  margin-bottom:36px;
 }
 
 .brand-title-wrap{
   display:inline-block;
   background:var(--navy);
-  padding:15px 40px;
+  padding:14px 36px 18px;
   border-radius:32px;
+  transform:rotate(-1deg);
 }
 
 .brand-title{
   color:var(--yellow);
-  font-size:clamp(36px,8vw,60px);
+  font-size:clamp(38px,8vw,60px);
   font-weight:900;
   letter-spacing:4px;
 }
 
 .brand-sub{
   display:inline-block;
-  margin-top:10px;
+  margin-top:8px;
   background:var(--yellow);
   color:var(--navy);
   padding:8px 26px;
@@ -57,53 +62,87 @@ body{
   font-weight:900;
 }
 
+/* 卡片 */
+
 .menu-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:26px;
+  gap:28px;
 }
 
 .menu-card{
+  position:relative;
+  background:white;
+  border-radius:38px;
+  padding:36px 28px 34px;
+  text-align:center;
   text-decoration:none;
   color:var(--navy);
-  background:white;
-  border-radius:34px;
+
   border:4px solid var(--navy);
-  padding:28px 22px;
-  text-align:center;
+
+  box-shadow:
+    2px 2px 0 rgba(37,43,95,.18);
 }
 
+/* 手繪外框 */
+
+.menu-card:before{
+  content:"";
+  position:absolute;
+  inset:-4px;
+  border:3px solid var(--navy);
+  border-radius:42px;
+  transform:rotate(-.5deg);
+  pointer-events:none;
+}
+
+/* icon */
+
 .icon{
-  font-size:56px;
+  font-size:54px;
   margin-bottom:10px;
 }
+
+/* 主標題 */
 
 .main{
   font-size:40px;
   font-weight:900;
-  margin-bottom:12px;
+  margin-bottom:10px;
 }
+
+/* 副標 */
 
 .sub{
   font-size:22px;
-  font-weight:700;
-  margin-bottom:20px;
+  font-weight:800;
+  margin-bottom:22px;
 }
+
+/* 短按鈕 */
 
 .button{
   display:inline-block;
-  width:100%;
-  background:var(--pink);
-  color:white;
-  padding:16px;
-  border-radius:20px;
-  font-size:26px;
+
+  padding:14px 60px;
+
+  border-radius:999px;
+
+  font-size:24px;
   font-weight:900;
+  color:white;
+
+  background:var(--pink);
 }
 
+/* 藍色按鈕 */
+
 .blue .button{
-  background:#6c76b9;
+  background:var(--blue);
 }
+
+/* 手機 */
 
 @media(max-width:700px){
 
@@ -121,6 +160,8 @@ body{
 
 <div class="page">
 
+<!-- LOGO -->
+
 <div class="brand">
 
 <div class="brand-title-wrap">
@@ -136,6 +177,8 @@ PiXiE Education
 </div>
 
 </div>
+
+<!-- 兩大入口 -->
 
 <div class="menu-grid">
 
