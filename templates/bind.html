@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家長綁定｜皮克西共學教育</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+body{
+  margin:0;
+  background:#fffaf2;
+  font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;
+  color:#252b5f;
+}
+.card{
+  max-width:520px;
+  margin:40px auto;
+  background:white;
+  border:4px solid #252b5f;
+  border-radius:28px;
+  padding:28px 22px;
+  text-align:center;
+}
+h1{
+  color:#252b5f;
+  font-size:32px;
+}
+.info{
+  font-size:21px;
+  line-height:1.8;
+  font-weight:800;
+  margin:24px 0;
+}
+button{
+  width:100%;
+  padding:16px;
+  border:0;
+  border-radius:18px;
+  background:#252b5f;
+  color:#fff2a8;
+  font-size:22px;
+  font-weight:900;
+}
+.msg{
+  margin-top:18px;
+  font-size:18px;
+  font-weight:800;
+}
+</style>
+</head>
+
+<body>
+<div class="card">
+  <h1>家長綁定</h1>
+
+  <div class="info" id="studentInfo">
+    載入學生資料中...
+  </div>
+
+  <button onclick="confirmBind()">確認綁定</button>
+
+  <div class="msg" id="msg"></div>
+</div>
+
+<script>
+const LIFF_ID = "2009899432-9KT6ckHI";
+const params = new URLSearchParams(window.location.search);
+const studentId = params.get("bind");
+
+let lineUserId = "";
+
+async function init(){
+  if(!studentId){
+    document.getElementById("studentInfo").innerText = "缺少學生代碼，請聯絡老師。";
+    return;
+  }
+
+  const res = await fetch(`/api/bind-student?student_id=${studentId}`);
+  const data = await res.json();
+
+  if(!data.ok){
+    document.getElementById("studentInfo").innerText = data.message || "找不到學生資料";
+    return;
+  }
+
+  document.getElementById("studentInfo").innerHTML = `
+    學生：${data.student_name} ${data.english_name || ""}<br>
+    年級：${data.grade || ""}<br>
+    班級：${data.class_name || ""}
+  `;
+
+  await liff.init({ liffId: LIFF_ID });
+
+  if(!liff.isLoggedIn()){
+    liff.login();
+    return;
+  }
+
+  const profile = await liff.getProfile();
+  lineUserId = profile.userId;
+}
+
+async function confirmBind(){
+  const msg = document.getElementById("msg");
+
+  if(!studentId){
+    msg.innerText = "缺少學生代碼。";
+    return;
+  }
+
+  if(!lineUserId){
+    msg.innerText = "尚未取得 LINE 身分，請重新開啟連結。";
+    return;
+  }
+
+  const res = await fetch("/api/bind-confirm", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      student_id: studentId,
+      line_user_id: lineUserId
+    })
+  });
+
+  const data = await res.json();
+
+  if(data.ok){
+    msg.innerText = "綁定成功！之後即可使用家長專區。";
+  }else{
+    msg.innerText = data.message || "綁定失敗，請聯絡老師。";
+  }
+}
+
+init();
+</script>
+</body>
+</html>
