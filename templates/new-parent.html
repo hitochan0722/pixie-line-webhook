@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>新生專區｜皮克西共學教育</title>
+
+<style>
+
+:root{
+  --navy:#252b5f;
+  --cream:#fffaf2;
+  --yellow:#fff2a8;
+  --pink:#f08a9c;
+  --blue:#7b84c5;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--cream);
+  font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;
+  color:var(--navy);
+}
+
+.page{
+  min-height:100vh;
+  max-width:900px;
+  margin:0 auto;
+  padding:24px 18px 34px;
+}
+
+.brand{
+  text-align:center;
+  margin-bottom:28px;
+}
+
+.brand-title-wrap{
+  display:inline-block;
+  background:var(--navy);
+  padding:13px 34px 17px;
+  border-radius:28px 34px 30px 32px;
+}
+
+.brand-title{
+  color:var(--yellow);
+  font-size:clamp(34px,8vw,58px);
+  font-weight:900;
+  letter-spacing:4px;
+}
+
+.brand-sub{
+  display:inline-block;
+  margin-top:-2px;
+  background:var(--yellow);
+  color:var(--navy);
+  padding:8px 26px;
+  border-radius:15px;
+  font-size:clamp(22px,5vw,36px);
+  font-weight:900;
+}
+
+.menu-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:22px;
+}
+
+.menu-card{
+  position:relative;
+  min-height:145px;
+  padding:20px 22px;
+  display:flex;
+  align-items:center;
+  text-decoration:none;
+  color:var(--navy);
+  background:#fffdfa;
+  border-radius:34px 38px 32px 36px;
+  border:4px solid var(--navy);
+}
+
+.menu-card:before{
+  content:"";
+  position:absolute;
+  inset:-4px;
+  border:3px solid var(--navy);
+  border-radius:39px 33px 37px 31px;
+  transform:rotate(-.5deg);
+  pointer-events:none;
+}
+
+.menu-card:nth-child(even):before{
+  transform:rotate(.6deg);
+}
+
+.icon{
+  font-size:44px;
+  width:58px;
+  text-align:center;
+  margin-right:15px;
+}
+
+.main{
+  font-size:clamp(28px,6vw,42px);
+  font-weight:900;
+}
+
+.line{
+  width:76%;
+  height:3px;
+  margin:12px 0 6px;
+  background:var(--pink);
+  border-radius:99px;
+}
+
+.sub{
+  color:#333;
+  font-size:clamp(15px,3.6vw,22px);
+  font-weight:900;
+}
+
+.arrow{
+  margin-left:auto;
+  font-size:50px;
+  color:var(--pink);
+}
+
+.menu-card.blue .line{
+  background:var(--blue);
+}
+
+.menu-card.blue .arrow{
+  color:var(--blue);
+}
+
+.back{
+  display:block;
+  width:min(320px,90%);
+  margin:26px auto 0;
+  text-align:center;
+  background:var(--navy);
+  color:var(--yellow);
+  padding:16px;
+  border-radius:22px;
+  text-decoration:none;
+  font-size:22px;
+  font-weight:900;
+}
+
+@media(max-width:700px){
+  .menu-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="page">
+
+<div class="brand">
+
+<div class="brand-title-wrap">
+<div class="brand-title">
+新生專區
+</div>
+</div>
+
+<br>
+
+<div class="brand-sub">
+PiXiE Education
+</div>
+
+</div>
+
+<div class="menu-grid">
+
+<!-- 新生問班 -->
+
+<a class="menu-card"
+href="/parent/new-student">
+
+<div class="icon">✎</div>
+
+<div>
+<div class="main">新生問班</div>
+<div class="line"></div>
+<div class="sub">填寫基本資料・老師聯繫</div>
+</div>
+
+<div class="arrow">›</div>
+
+</a>
+
+<!-- 課程介紹 -->
+
+<a class="menu-card blue"
+href="/parent/new-student">
+
+<div class="icon">📖</div>
+
+<div>
+<div class="main">課程介紹</div>
+<div class="line"></div>
+<div class="sub">課程內容・學習規劃</div>
+</div>
+
+<div class="arrow">›</div>
+
+</a>
+
+<!-- 預約試聽 -->
+
+<a class="menu-card"
+href="/parent/new-student">
+
+<div class="icon">🗓</div>
+
+<div>
+<div class="main">預約試聽</div>
+<div class="line"></div>
+<div class="sub">安排試聽時間</div>
+</div>
+
+<div class="arrow">›</div>
+
+</a>
+
+<!-- 聯絡與匯款資訊 -->
+
+<a class="menu-card blue"
+href="/contact">
+
+<div class="icon">☎</div>
+
+<div>
+<div class="main">聯絡與匯款資訊</div>
+<div class="line"></div>
+<div class="sub">電話・地址・帳號</div>
+</div>
+
+<div class="arrow">›</div>
+
+</a>
+
+</div>
+
+<a class="back" href="/">
+返回首頁
+</a>
+
+</div>
+
+</body>
+</html>
