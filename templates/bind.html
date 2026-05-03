@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>家長綁定｜皮克西共學教育</title>
 
-<!-- LIFF -->
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
@@ -14,41 +13,34 @@
   --cream:#fffaf2;
   --yellow:#fff2a8;
   --pink:#f08a9c;
-  --pink2:#f6b4bf;
 }
-
 body{
   margin:0;
   background:var(--cream);
   font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;
   color:var(--navy);
 }
-
 .page{
   min-height:100vh;
   max-width:720px;
   margin:0 auto;
   padding:24px 18px 40px;
 }
-
 .brand{
   text-align:center;
   margin:18px 0 28px;
 }
-
 .brand-title-wrap{
   display:inline-block;
   background:var(--navy);
   padding:13px 34px 17px;
   border-radius:30px;
 }
-
 .brand-title{
   color:var(--yellow);
   font-size:40px;
   font-weight:900;
 }
-
 .card{
   background:#fffdfa;
   border:4px solid var(--navy);
@@ -56,19 +48,16 @@ body{
   padding:32px 26px;
   text-align:center;
 }
-
 h1{
   font-size:36px;
   margin-bottom:16px;
 }
-
 .info{
   font-size:22px;
   font-weight:900;
   margin:26px 0;
   line-height:1.8;
 }
-
 button{
   width:100%;
   padding:18px;
@@ -79,7 +68,9 @@ button{
   font-size:24px;
   font-weight:900;
 }
-
+button:disabled{
+  opacity:.5;
+}
 .msg{
   margin-top:18px;
   font-size:18px;
@@ -87,84 +78,84 @@ button{
   color:var(--pink);
 }
 </style>
-
 </head>
 
 <body>
 
 <div class="page">
 
-<div class="brand">
-<div class="brand-title-wrap">
-<div class="brand-title">
-皮克西共學教育
-</div>
-</div>
-</div>
+  <div class="brand">
+    <div class="brand-title-wrap">
+      <div class="brand-title">皮克西共學教育</div>
+    </div>
+  </div>
 
-<div class="card">
+  <div class="card">
+    <h1>家長綁定</h1>
 
-<h1>家長綁定</h1>
+    <div class="info" id="studentInfo">
+      載入學生資料中...
+    </div>
 
-<div class="info" id="studentInfo">
-載入學生資料中...
-</div>
+    <button id="bindBtn" disabled>
+      確認綁定
+    </button>
 
-<button id="bindBtn">
-確認綁定
-</button>
-
-<div class="msg" id="msg"></div>
-
-</div>
+    <div class="msg" id="msg"></div>
+  </div>
 
 </div>
 
 <script>
-
 const LIFF_ID = "2009899432-9KT6ckHI";
 
 let lineUserId = "";
+let studentId = "";
+
+function readParamsFromSearch(search){
+  const params = new URLSearchParams(search);
+
+  return (
+    params.get("bind") ||
+    params.get("student") ||
+    params.get("student_id") ||
+    ""
+  ).trim();
+}
 
 function getStudentId(){
-
-  const params = new URLSearchParams(window.location.search);
-
-  let id = params.get("bind");
+  let id = readParamsFromSearch(window.location.search);
 
   if(id){
     return id;
   }
 
+  const params = new URLSearchParams(window.location.search);
   let state = params.get("liff.state");
 
   if(state){
-
     state = decodeURIComponent(state);
 
     if(state.startsWith("?")){
       state = state.substring(1);
     }
 
-    const stateParams = new URLSearchParams(state);
-
-    id = stateParams.get("bind");
+    id = readParamsFromSearch("?" + state);
 
     if(id){
       return id;
     }
-
   }
 
   return "";
-
 }
 
-const studentId = getStudentId();
-
 async function init(){
-
   const info = document.getElementById("studentInfo");
+  const msg = document.getElementById("msg");
+  const bindBtn = document.getElementById("bindBtn");
+
+  studentId = getStudentId();
 
   if(!studentId){
     info.innerText = "缺少學生代碼，請聯絡老師。";
@@ -172,13 +163,11 @@ async function init(){
   }
 
   try{
-
-    const res = await fetch(`/api/bind-student?student_id=${studentId}`);
-
+    const res = await fetch(`/api/bind-student?student_id=${encodeURIComponent(studentId)}`);
     const data = await res.json();
 
     if(!data.ok){
-      info.innerText = "找不到學生資料";
+      info.innerText = data.message || "找不到學生資料";
       return;
     }
 
@@ -191,89 +180,69 @@ async function init(){
     await liff.init({ liffId: LIFF_ID });
 
     if(!liff.isLoggedIn()){
-
       liff.login({
         redirectUri: window.location.href
       });
-
       return;
-
     }
 
     const profile = await liff.getProfile();
-
     lineUserId = profile.userId;
 
-  }
-  catch(err){
+    bindBtn.disabled = false;
+    msg.innerText = "";
 
+  }catch(err){
     console.log(err);
-
     info.innerText = "載入失敗，請重新開啟連結。";
-
   }
-
 }
 
-document.getElementById("bindBtn")
-.addEventListener("click", async () => {
-
+document.getElementById("bindBtn").addEventListener("click", async () => {
   const msg = document.getElementById("msg");
+  const bindBtn = document.getElementById("bindBtn");
 
   msg.innerText = "正在綁定中...";
+  bindBtn.disabled = true;
+
+  if(!studentId){
+    msg.innerText = "缺少學生代碼，請重新開啟連結。";
+    bindBtn.disabled = false;
+    return;
+  }
 
   if(!lineUserId){
     msg.innerText = "無法取得 LINE 身分，請重新開啟。";
+    bindBtn.disabled = false;
     return;
   }
 
   try{
-
     const res = await fetch("/api/bind-confirm", {
-
       method:"POST",
-
       headers:{
         "Content-Type":"application/json"
       },
-
       body:JSON.stringify({
-
         student_id: studentId,
         line_user_id: lineUserId
-
       })
-
     });
 
     const data = await res.json();
 
-    if(data.ok){
+    msg.innerText = data.message || "綁定完成。";
 
-      msg.innerText = "綁定成功！之後即可使用家長專區。";
-
-    }
-    else{
-
-      msg.innerText = data.message;
-
-    }
-
-  }
-  catch(err){
-
+  }catch(err){
     console.log(err);
-
     msg.innerText = "綁定失敗，請稍後再試。";
-
   }
 
+  bindBtn.disabled = false;
 });
 
 init();
-
 </script>
-
 
 </body>
 </html>
