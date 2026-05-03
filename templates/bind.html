@@ -126,12 +126,16 @@ const LIFF_ID = "2009899432-9KT6ckHI";
 
 function getStudentId(){
 
+  // 1️⃣ 先抓正常網址
+
   let params = new URLSearchParams(window.location.search);
   let id = params.get("bind");
 
   if(id){
     return id;
   }
+
+  // 2️⃣ 從完整網址抓
 
   const fullUrl = window.location.href;
 
@@ -144,6 +148,32 @@ function getStudentId(){
 
     return id;
   }
+
+  // 3️⃣ 從 liff.state 抓（最關鍵）
+
+  const liffState = params.get("liff.state");
+
+  if(liffState){
+
+    const decoded = decodeURIComponent(liffState);
+
+    if(decoded.includes("bind=")){
+
+      id = decoded.split("bind=")[1];
+
+      if(id.includes("&")){
+        id = id.split("&")[0];
+      }
+
+      return id;
+
+    }
+
+  }
+
+  return "";
+
+}
 
   const liffState = params.get("liff.state");
 
