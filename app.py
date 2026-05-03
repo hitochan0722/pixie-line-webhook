@@ -192,7 +192,7 @@ def api_pickup():
 
 @app.route("/")
 def home():
-    return "PIXIE PICKUP SYSTEM RUNNING"
+    return render_template("index.html")
 
 @app.route("/parent")
 def parent_page():
