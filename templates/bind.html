@@ -124,79 +124,43 @@ button{
 
 const LIFF_ID = "2009899432-9KT6ckHI";
 
+let lineUserId = "";
+
 function getStudentId(){
 
-  // 1️⃣ 先抓正常網址
+  const params = new URLSearchParams(window.location.search);
 
-  let params = new URLSearchParams(window.location.search);
   let id = params.get("bind");
 
   if(id){
     return id;
   }
 
-  // 2️⃣ 從完整網址抓
+  let state = params.get("liff.state");
 
-  const fullUrl = window.location.href;
+  if(state){
 
-  if(fullUrl.includes("bind=")){
-    id = fullUrl.split("bind=")[1];
+    state = decodeURIComponent(state);
 
-    if(id.includes("&")){
-      id = id.split("&")[0];
+    if(state.startsWith("?")){
+      state = state.substring(1);
     }
 
-    return id;
-  }
+    const stateParams = new URLSearchParams(state);
 
-  // 3️⃣ 從 liff.state 抓（最關鍵）
+    id = stateParams.get("bind");
 
-  const liffState = params.get("liff.state");
-
-  if(liffState){
-
-    const decoded = decodeURIComponent(liffState);
-
-    if(decoded.includes("bind=")){
-
-      id = decoded.split("bind=")[1];
-
-      if(id.includes("&")){
-        id = id.split("&")[0];
-      }
-
+    if(id){
       return id;
-
     }
 
   }
 
   return "";
 
-}
-
-  const liffState = params.get("liff.state");
-
-  if(liffState){
-    const decoded = decodeURIComponent(liffState);
-
-    if(decoded.includes("bind=")){
-      id = decoded.split("bind=")[1];
-
-      if(id.includes("&")){
-        id = id.split("&")[0];
-      }
-
-      return id;
-    }
-  }
-
-  return "";
 }
 
 const studentId = getStudentId();
-
-let lineUserId = "";
 
 async function init(){
 
@@ -209,9 +173,8 @@ async function init(){
 
   try{
 
-    // 取得學生資料
-
     const res = await fetch(`/api/bind-student?student_id=${studentId}`);
+
     const data = await res.json();
 
     if(!data.ok){
@@ -220,50 +183,39 @@ async function init(){
     }
 
     info.innerHTML = `
-    學生：${data.student_name} ${data.english_name || ""}<br>
-    年級：${data.grade || ""}<br>
-    班級：${data.class_name || ""}
+      學生：${data.student_name} ${data.english_name || ""}<br>
+      年級：${data.grade || ""}<br>
+      班級：${data.class_name || ""}
     `;
 
-    // 初始化 LIFF
-
-    await liff.init({
-      liffId: LIFF_ID
-    });
-
-    // 如果沒登入 LINE
+    await liff.init({ liffId: LIFF_ID });
 
     if(!liff.isLoggedIn()){
-  liff.login({
-    redirectUri: window.location.href
-  });
-  return;
-}
 
-    // 取得 LINE userId
+      liff.login({
+        redirectUri: window.location.href
+      });
+
+      return;
+
+    }
 
     const profile = await liff.getProfile();
 
     lineUserId = profile.userId;
-
-    console.log("LINE userId:", lineUserId);
 
   }
   catch(err){
 
     console.log(err);
 
-    document.getElementById("studentInfo").innerText =
-      "載入失敗，請重新開啟連結。";
+    info.innerText = "載入失敗，請重新開啟連結。";
 
   }
 
 }
 
-// 按鈕事件
-
-document
-.getElementById("bindBtn")
+document.getElementById("bindBtn")
 .addEventListener("click", async () => {
 
   const msg = document.getElementById("msg");
@@ -271,7 +223,7 @@ document
   msg.innerText = "正在綁定中...";
 
   if(!lineUserId){
-    msg.innerText = "無法取得 LINE 身分，請從 LINE 內重新開啟。";
+    msg.innerText = "無法取得 LINE 身分，請重新開啟。";
     return;
   }
 
@@ -321,6 +273,7 @@ document
 init();
 
 </script>
+
 
 </body>
 </html>
