@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>家長綁定｜皮克西共學教育</title>
+
+<!-- LIFF -->
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
@@ -12,11 +14,8 @@
   --cream:#fffaf2;
   --yellow:#fff2a8;
   --pink:#f08a9c;
-  --blue:#7b84c5;
   --pink2:#f6b4bf;
 }
-
-*{box-sizing:border-box}
 
 body{
   margin:0;
@@ -30,8 +29,6 @@ body{
   max-width:720px;
   margin:0 auto;
   padding:24px 18px 40px;
-  border-left:4px solid var(--pink2);
-  border-right:4px solid var(--pink2);
 }
 
 .brand{
@@ -43,25 +40,12 @@ body{
   display:inline-block;
   background:var(--navy);
   padding:13px 34px 17px;
-  border-radius:28px 34px 30px 32px;
-  transform:rotate(-1.3deg);
+  border-radius:30px;
 }
 
 .brand-title{
   color:var(--yellow);
-  font-size:clamp(34px,8vw,58px);
-  font-weight:900;
-  letter-spacing:4px;
-}
-
-.brand-sub{
-  display:inline-block;
-  margin-top:-2px;
-  background:var(--yellow);
-  color:var(--navy);
-  padding:8px 26px;
-  border-radius:15px;
-  font-size:clamp(22px,5vw,36px);
+  font-size:40px;
   font-weight:900;
 }
 
@@ -71,89 +55,83 @@ body{
   border-radius:34px;
   padding:32px 26px;
   text-align:center;
-  box-shadow:2px 2px 0 rgba(37,43,95,.16);
 }
 
 h1{
-  font-size:42px;
-  margin:0 0 14px;
-  font-weight:900;
-}
-
-.line{
-  width:70%;
-  height:5px;
-  background:var(--pink);
-  border-radius:99px;
-  margin:16px auto 24px;
+  font-size:36px;
+  margin-bottom:16px;
 }
 
 .info{
   font-size:22px;
-  line-height:1.8;
   font-weight:900;
-  margin:24px 0;
-  color:#333;
+  margin:26px 0;
+  line-height:1.8;
 }
 
 button{
   width:100%;
-  margin-top:12px;
-  padding:17px;
-  border:0;
+  padding:18px;
   border-radius:22px;
+  border:0;
   background:var(--navy);
   color:var(--yellow);
   font-size:24px;
   font-weight:900;
-  cursor:pointer;
 }
 
 .msg{
-  margin-top:20px;
-  font-size:19px;
-  line-height:1.7;
+  margin-top:18px;
+  font-size:18px;
   font-weight:900;
   color:var(--pink);
 }
 </style>
+
 </head>
 
 <body>
+
 <div class="page">
 
-  <div class="brand">
-    <div class="brand-title-wrap">
-      <div class="brand-title">皮克西共學教育</div>
-    </div><br>
-    <div class="brand-sub">PiXiE Education</div>
-  </div>
+<div class="brand">
+<div class="brand-title-wrap">
+<div class="brand-title">
+皮克西共學教育
+</div>
+</div>
+</div>
 
-  <div class="card">
-    <h1>家長綁定</h1>
-    <div class="line"></div>
+<div class="card">
 
-    <div class="info" id="studentInfo">
-      載入學生資料中...
-    </div>
+<h1>家長綁定</h1>
 
-    <button onclick="confirmBind()">確認綁定</button>
+<div class="info" id="studentInfo">
+載入學生資料中...
+</div>
 
-    <div class="msg" id="msg"></div>
-  </div>
+<button id="bindBtn">
+確認綁定
+</button>
+
+<div class="msg" id="msg"></div>
+
+</div>
 
 </div>
 
 <script>
+
 const LIFF_ID = "2009899432-9KT6ckHI";
+
 const params = new URLSearchParams(window.location.search);
 const studentId = params.get("bind");
 
 let lineUserId = "";
 
 async function init(){
+
   const info = document.getElementById("studentInfo");
-  const msg = document.getElementById("msg");
 
   if(!studentId){
     info.innerText = "缺少學生代碼，請聯絡老師。";
@@ -161,74 +139,116 @@ async function init(){
   }
 
   try{
+
+    // 取得學生資料
+
     const res = await fetch(`/api/bind-student?student_id=${studentId}`);
     const data = await res.json();
 
     if(!data.ok){
-      info.innerText = data.message || "找不到學生資料";
+      info.innerText = "找不到學生資料";
       return;
     }
 
     info.innerHTML = `
-      學生：${data.student_name} ${data.english_name || ""}<br>
-      年級：${data.grade || ""}<br>
-      班級：${data.class_name || ""}
+    學生：${data.student_name} ${data.english_name || ""}<br>
+    年級：${data.grade || ""}<br>
+    班級：${data.class_name || ""}
     `;
 
-    await liff.init({ liffId: LIFF_ID });
+    // 初始化 LIFF
+
+    await liff.init({
+      liffId: LIFF_ID
+    });
+
+    // 如果沒登入 LINE
 
     if(!liff.isLoggedIn()){
       liff.login();
       return;
     }
 
+    // 取得 LINE userId
+
     const profile = await liff.getProfile();
+
     lineUserId = profile.userId;
 
-  }catch(err){
-    msg.innerText = "載入失敗，請重新開啟連結。";
-    console.log(err);
+    console.log("LINE userId:", lineUserId);
+
   }
+  catch(err){
+
+    console.log(err);
+
+    document.getElementById("studentInfo").innerText =
+      "載入失敗，請重新開啟連結。";
+
+  }
+
 }
 
-async function confirmBind(){
+// 按鈕事件
+
+document
+.getElementById("bindBtn")
+.addEventListener("click", async () => {
+
   const msg = document.getElementById("msg");
 
-  if(!studentId){
-    msg.innerText = "缺少學生代碼。";
-    return;
-  }
+  msg.innerText = "正在綁定中...";
 
   if(!lineUserId){
-    msg.innerText = "尚未取得 LINE 身分，請重新開啟連結。";
+    msg.innerText = "無法取得 LINE 身分，請從 LINE 內重新開啟。";
     return;
   }
 
   try{
+
     const res = await fetch("/api/bind-confirm", {
+
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+
+      headers:{
+        "Content-Type":"application/json"
+      },
+
       body:JSON.stringify({
+
         student_id: studentId,
         line_user_id: lineUserId
+
       })
+
     });
 
     const data = await res.json();
 
     if(data.ok){
-      msg.innerText = data.message || "綁定成功！之後即可使用家長專區。";
-    }else{
-      msg.innerText = data.message || "綁定失敗，請聯絡老師。";
+
+      msg.innerText = "綁定成功！之後即可使用家長專區。";
+
+    }
+    else{
+
+      msg.innerText = data.message;
+
     }
 
-  }catch(err){
-    msg.innerText = "綁定失敗，請稍後再試。";
-    console.log(err);
   }
-}
+  catch(err){
+
+    console.log(err);
+
+    msg.innerText = "綁定失敗，請稍後再試。";
+
+  }
+
+});
 
 init();
+
 </script>
 
 </body>
