@@ -75,12 +75,17 @@ def save_students(students):
         "家長ID1",
         "家長ID2",
         "家長姓名",
+        "家長LINE名稱",
         "接送方式",
         "備註"
     ]
 
     with open(STUDENTS_FILE, "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(
+            f,
+            fieldnames=fieldnames,
+            extrasaction="ignore"
+        )
         writer.writeheader()
         writer.writerows(students)
 
