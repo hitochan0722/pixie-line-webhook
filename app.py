@@ -451,7 +451,63 @@ def home():
 @app.route("/new-student")
 def new_student():
     return render_template("new-student.html")
+@app.route("/new-student-submit", methods=["POST"])
+def new_student_submit():
+    student_name = request.form.get("student_name", "")
+    school = request.form.get("school", "")
+    learning_experience = request.form.get("learning_experience", "")
+    parent_name = request.form.get("parent_name", "")
+    phone = request.form.get("phone", "")
 
+data = {
+    "form_type": "new_student",
+    "student_name": student_name,
+    "school": school,
+    "learning_experience": learning_experience,
+    "parent_name": parent_name,
+    "phone": phone,
+    "source": "新生入口"
+}
+
+    # 寫入 Google Sheet
+    gas_url = os.getenv("NEW_STUDENT_GAS_URL")
+    if gas_url:
+        try:
+            requests.post(gas_url, json=data, timeout=10)
+        except Exception as e:
+            print("新生資料寫入 Sheet 失敗：", e)
+
+    # 傳到老師 LINE 群組
+    message = f"""📩 新生問班資料
+
+學生姓名：{student_name}
+就讀學校：{school}
+學習經歷：{learning_experience}
+家長姓名：{parent_name}
+電話：{phone}"""
+
+    if CHANNEL_ACCESS_TOKEN and TEACHER_GROUP_ID:
+        try:
+            requests.post(
+                "https://api.line.me/v2/bot/message/push",
+                headers=line_headers(),
+                json={
+                    "to": TEACHER_GROUP_ID,
+                    "messages": [{"type": "text", "text": message}]
+                },
+                timeout=10
+            )
+        except Exception as e:
+            print("新生資料傳送 LINE 群組失敗：", e)
+
+    return """
+    <html>
+    <body style="font-family:Arial; text-align:center; padding:40px;">
+      <h2>資料已送出</h2>
+      <p>謝謝您填寫問班資料，老師會盡快與您聯繫。</p>
+    </body>
+    </html>
+    """
 
 @app.route("/version")
 def version():
