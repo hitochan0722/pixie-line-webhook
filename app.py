@@ -198,6 +198,10 @@ def home():
 def parent_page():
     return render_template("parent.html")
 
+@app.route("/new-parent")
+def new_parent_page():
+    return render_template("new-parent.html")
+
 @app.route("/parent/pickup")
 def parent_pickup_page():
     return render_template("pickup.html")
