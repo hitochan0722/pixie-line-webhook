@@ -126,32 +126,42 @@ const LIFF_ID = "2009899432-9KT6ckHI";
 
 function getStudentId(){
 
-  // 先抓正常 query
-
   let params = new URLSearchParams(window.location.search);
-
   let id = params.get("bind");
 
-  // 如果抓不到，從 LIFF URL 裡抓
+  if(id){
+    return id;
+  }
 
-  if(!id){
+  const fullUrl = window.location.href;
 
-    const fullUrl = window.location.href;
+  if(fullUrl.includes("bind=")){
+    id = fullUrl.split("bind=")[1];
 
-    if(fullUrl.includes("bind=")){
+    if(id.includes("&")){
+      id = id.split("&")[0];
+    }
 
-      id = fullUrl.split("bind=")[1];
+    return id;
+  }
+
+  const liffState = params.get("liff.state");
+
+  if(liffState){
+    const decoded = decodeURIComponent(liffState);
+
+    if(decoded.includes("bind=")){
+      id = decoded.split("bind=")[1];
 
       if(id.includes("&")){
         id = id.split("&")[0];
       }
 
+      return id;
     }
-
   }
 
-  return id;
-
+  return "";
 }
 
 const studentId = getStudentId();
@@ -194,9 +204,11 @@ async function init(){
     // 如果沒登入 LINE
 
     if(!liff.isLoggedIn()){
-      liff.login();
-      return;
-    }
+  liff.login({
+    redirectUri: window.location.href
+  });
+  return;
+}
 
     // 取得 LINE userId
 
