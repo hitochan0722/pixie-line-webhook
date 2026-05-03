@@ -65,6 +65,25 @@ def load_students():
     with open(STUDENTS_FILE, newline="", encoding="utf-8-sig") as f:
         return list(csv.DictReader(f))
 
+def save_students(students):
+    fieldnames = [
+        "student_id",
+        "學生姓名",
+        "英文姓名",
+        "年級",
+        "班級",
+        "家長ID1",
+        "家長ID2",
+        "家長姓名",
+        "接送方式",
+        "備註"
+    ]
+
+    with open(STUDENTS_FILE, "w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(students)
+
 def get_student_name(student):
     return (
         student.get("學生姓名")
@@ -78,13 +97,10 @@ def find_student(text, user_id):
     for s in students:
         name = get_student_name(s)
 
-        parent_id = (
-            s.get("parent_user_id")
-            or s.get("家長LINE_ID")
-            or ""
-        ).strip()
+        parent_id_1 = s.get("家長ID1", "").strip()
+        parent_id_2 = s.get("家長ID2", "").strip()
 
-        if parent_id and parent_id == user_id:
+        if user_id and (user_id == parent_id_1 or user_id == parent_id_2):
             return s
 
         if name and name in text:
@@ -186,6 +202,82 @@ def api_pickup():
 
     return jsonify(new_items)
 
+@app.route("/api/bind-student")
+def api_bind_student():
+    student_id = request.args.get("student_id", "").strip()
+
+    students = load_students()
+
+    for s in students:
+        if s.get("student_id", "").strip() == student_id:
+            return jsonify({
+                "ok": True,
+                "student_name": s.get("學生姓名", ""),
+                "english_name": s.get("英文姓名", ""),
+                "grade": s.get("年級", ""),
+                "class_name": s.get("班級", "")
+            })
+
+    return jsonify({
+        "ok": False,
+        "message": "找不到學生資料，請聯絡老師。"
+    })
+
+@app.route("/api/bind-confirm", methods=["POST"])
+def api_bind_confirm():
+    data = request.get_json()
+
+    student_id = data.get("student_id", "").strip()
+    line_user_id = data.get("line_user_id", "").strip()
+
+    if not student_id or not line_user_id:
+        return jsonify({
+            "ok": False,
+            "message": "資料不完整，請重新開啟連結。"
+        })
+
+    students = load_students()
+    updated = False
+
+    for s in students:
+        if s.get("student_id", "").strip() == student_id:
+
+            id1 = s.get("家長ID1", "").strip()
+            id2 = s.get("家長ID2", "").strip()
+
+            if line_user_id == id1 or line_user_id == id2:
+                return jsonify({
+                    "ok": True,
+                    "message": "此家長已完成綁定。"
+                })
+
+            if not id1:
+                s["家長ID1"] = line_user_id
+                updated = True
+            elif not id2:
+                s["家長ID2"] = line_user_id
+                updated = True
+            else:
+                return jsonify({
+                    "ok": False,
+                    "message": "此學生已綁定兩位家長，請聯絡老師。"
+                })
+
+            break
+
+    if not updated:
+        return jsonify({
+            "ok": False,
+            "message": "找不到學生或無法綁定。"
+        })
+
+    save_students(students)
+
+    return jsonify({
+        "ok": True,
+        "message": "綁定成功！之後即可使用家長專區。"
+    })
+
 # ========================
 # 頁面 routes
 # ========================
@@ -201,6 +293,10 @@ def parent_page():
 @app.route("/new-parent")
 def new_parent_page():
     return render_template("new-parent.html")
+
+@app.route("/bind")
+def bind_page():
+    return render_template("bind.html")
 
 @app.route("/parent/pickup")
 def parent_pickup_page():
@@ -245,7 +341,6 @@ def parent_new_student_submit():
         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
-    # 傳 Google Sheet
     gas_url = os.getenv("NEW_STUDENT_GAS_URL")
 
     if gas_url:
@@ -257,7 +352,6 @@ def parent_new_student_submit():
     else:
         print("沒有設定 NEW_STUDENT_GAS_URL，所以沒有寫入 Sheet")
 
-    # 傳 LINE 老師群組
     message = f"""📩 新生問班資料
 
 學生姓名：{student_name}
@@ -281,7 +375,7 @@ def parent_new_student_submit():
       <div style="background:white; border-radius:22px; padding:30px 20px; max-width:480px; margin:0 auto; box-shadow:0 8px 24px rgba(0,0,0,0.08);">
         <h2 style="color:#e28a4f;">資料已送出</h2>
         <p style="font-size:18px; line-height:1.7;">謝謝您填寫問班資料，老師會盡快與您聯繫。</p>
-        <a href="/parent" style="display:inline-block; margin-top:18px; background:#e28a4f; color:white; padding:12px 22px; border-radius:16px; text-decoration:none; font-weight:bold;">回家長專區</a>
+        <a href="/new-parent" style="display:inline-block; margin-top:18px; background:#e28a4f; color:white; padding:12px 22px; border-radius:16px; text-decoration:none; font-weight:bold;">回新生專區</a>
       </div>
     </body>
     </html>
@@ -289,7 +383,7 @@ def parent_new_student_submit():
 
 @app.route("/version")
 def version():
-    return "PIXIE PICKUP + NEW STUDENT VERSION"
+    return "PIXIE PICKUP + NEW STUDENT + BIND VERSION"
 
 # ========================
 
