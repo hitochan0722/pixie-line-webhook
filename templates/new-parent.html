@@ -32,6 +32,8 @@ body{
   padding:24px 18px 34px;
 }
 
+/* 標題 */
+
 .brand{
   text-align:center;
   margin-bottom:28px;
@@ -62,16 +64,18 @@ body{
   font-weight:900;
 }
 
+/* 卡片 */
+
 .menu-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:22px;
+  gap:26px;
 }
 
 .menu-card{
   position:relative;
-  min-height:145px;
-  padding:20px 22px;
+  min-height:150px;
+  padding:22px 24px;
   display:flex;
   align-items:center;
   text-decoration:none;
@@ -96,19 +100,19 @@ body{
 }
 
 .icon{
-  font-size:44px;
-  width:58px;
+  font-size:46px;
+  width:60px;
   text-align:center;
   margin-right:15px;
 }
 
 .main{
-  font-size:clamp(28px,6vw,42px);
+  font-size:clamp(30px,6vw,44px);
   font-weight:900;
 }
 
 .line{
-  width:76%;
+  width:78%;
   height:3px;
   margin:12px 0 6px;
   background:var(--pink);
@@ -117,7 +121,7 @@ body{
 
 .sub{
   color:#333;
-  font-size:clamp(15px,3.6vw,22px);
+  font-size:clamp(16px,3.5vw,22px);
   font-weight:900;
 }
 
@@ -138,7 +142,7 @@ body{
 .back{
   display:block;
   width:min(320px,90%);
-  margin:26px auto 0;
+  margin:28px auto 0;
   text-align:center;
   background:var(--navy);
   color:var(--yellow);
@@ -191,48 +195,14 @@ href="/parent/new-student">
 <div>
 <div class="main">新生問班</div>
 <div class="line"></div>
-<div class="sub">填寫基本資料・老師聯繫</div>
+<div class="sub">填寫資料・老師聯繫</div>
 </div>
 
 <div class="arrow">›</div>
 
 </a>
 
-<!-- 課程介紹 -->
-
-<a class="menu-card blue"
-href="/parent/new-student">
-
-<div class="icon">📖</div>
-
-<div>
-<div class="main">課程介紹</div>
-<div class="line"></div>
-<div class="sub">課程內容・學習規劃</div>
-</div>
-
-<div class="arrow">›</div>
-
-</a>
-
-<!-- 預約試聽 -->
-
-<a class="menu-card"
-href="/parent/new-student">
-
-<div class="icon">🗓</div>
-
-<div>
-<div class="main">預約試聽</div>
-<div class="line"></div>
-<div class="sub">安排試聽時間</div>
-</div>
-
-<div class="arrow">›</div>
-
-</a>
-
-<!-- 聯絡與匯款資訊 -->
+<!-- 聯絡與匯款 -->
 
 <a class="menu-card blue"
 href="/contact">
