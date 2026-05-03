@@ -1,132 +1,197 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>皮克西美語｜問班資料填寫</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
-      background: #fff7ef;
-      color: #333;
-    }
-
-    .container {
-      max-width: 520px;
-      margin: 0 auto;
-      padding: 28px 18px 40px;
-    }
-
-    .card {
-      background: #ffffff;
-      border-radius: 22px;
-      padding: 24px 20px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-    }
-
-    h1 {
-      text-align: center;
-      font-size: 26px;
-      margin: 0 0 8px;
-      color: #e28a4f;
-    }
-
-    .subtitle {
-      text-align: center;
-      font-size: 15px;
-      color: #777;
-      margin-bottom: 24px;
-      line-height: 1.6;
-    }
-
-    label {
-      display: block;
-      font-weight: 700;
-      margin: 16px 0 6px;
-      font-size: 15px;
-    }
-
-    input, textarea {
-      width: 100%;
-      box-sizing: border-box;
-      border: 1.5px solid #ead8c8;
-      border-radius: 14px;
-      padding: 13px 14px;
-      font-size: 16px;
-      outline: none;
-      background: #fffdfb;
-    }
-
-    input:focus, textarea:focus {
-      border-color: #e28a4f;
-      background: #fffaf4;
-    }
-
-    textarea {
-      min-height: 100px;
-      resize: vertical;
-    }
-
-    button {
-      width: 100%;
-      margin-top: 24px;
-      padding: 15px;
-      border: none;
-      border-radius: 18px;
-      background: #e28a4f;
-      color: white;
-      font-size: 18px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    button:active {
-      transform: scale(0.98);
-    }
-
-    .note {
-      margin-top: 18px;
-      font-size: 13px;
-      line-height: 1.6;
-      color: #888;
-      text-align: center;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>皮克西共學教育｜新生問班</title>
+<style>
+:root{
+  --navy:#252b5f;
+  --cream:#fffaf2;
+  --yellow:#fff2a8;
+  --pink:#f08a9c;
+  --pink2:#f6b4bf;
+  --text:#252b5f;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--cream);
+  color:var(--text);
+  font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;
+}
+.page{
+  min-height:100vh;
+  max-width:900px;
+  margin:0 auto;
+  padding:24px 18px 40px;
+  border-left:4px solid var(--pink2);
+  border-right:4px solid var(--pink2);
+}
+.brand{
+  text-align:center;
+  margin:14px 0 28px;
+}
+.brand-title-wrap{
+  display:inline-block;
+  background:var(--navy);
+  padding:13px 34px 17px;
+  border-radius:28px 34px 30px 32px;
+  transform:rotate(-1.5deg);
+  box-shadow:2px 2px 0 rgba(37,43,95,.35);
+}
+.brand-title{
+  color:var(--yellow);
+  font-size:clamp(34px,8vw,58px);
+  font-weight:900;
+  letter-spacing:4px;
+  line-height:1.08;
+}
+.brand-sub{
+  display:inline-block;
+  margin-top:-2px;
+  background:var(--yellow);
+  color:var(--navy);
+  padding:8px 28px;
+  border-radius:15px;
+  font-size:clamp(24px,5vw,38px);
+  font-weight:900;
+}
+.card{
+  background:#fffdfa;
+  border:4px solid var(--navy);
+  border-radius:34px;
+  max-width:720px;
+  margin:0 auto;
+  padding:36px 28px 32px;
+  box-shadow:3px 3px 0 rgba(37,43,95,.12);
+}
+h1{
+  text-align:center;
+  color:var(--navy);
+  font-size:clamp(36px,7vw,54px);
+  letter-spacing:6px;
+  margin:0;
+  font-weight:900;
+}
+.title-line{
+  width:70%;
+  max-width:420px;
+  height:5px;
+  background:var(--pink);
+  border-radius:999px;
+  margin:22px auto 26px;
+}
+label{
+  display:block;
+  color:var(--navy);
+  font-size:22px;
+  font-weight:900;
+  margin:18px 0 8px;
+}
+input, textarea, select{
+  width:100%;
+  border:4px solid var(--navy);
+  border-radius:24px;
+  padding:18px 20px;
+  font-size:22px;
+  font-weight:800;
+  color:#333;
+  background:white;
+  outline:none;
+}
+input::placeholder,
+textarea::placeholder{
+  color:#777;
+}
+textarea{
+  min-height:130px;
+  resize:vertical;
+  line-height:1.6;
+}
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+}
+button{
+  width:100%;
+  margin-top:28px;
+  padding:18px;
+  border:0;
+  border-radius:24px;
+  background:var(--navy);
+  color:var(--yellow);
+  font-size:26px;
+  font-weight:900;
+  letter-spacing:3px;
+  cursor:pointer;
+}
+button:active{
+  transform:scale(.98);
+}
+.note{
+  text-align:center;
+  color:#777;
+  font-size:15px;
+  line-height:1.7;
+  margin-top:18px;
+  font-weight:700;
+}
+@media(max-width:700px){
+  .page{padding:18px 14px 34px;}
+  .card{padding:30px 24px;}
+  .row{grid-template-columns:1fr;}
+  input,textarea,select{font-size:20px;}
+}
+</style>
 </head>
 
 <body>
-  <div class="container">
-    <div class="card">
-      <h1>皮克西美語</h1>
-      <div class="subtitle">
-        歡迎填寫問班資料<br>
-        老師收到後會盡快與您聯繫
+<div class="page">
+
+  <div class="brand">
+    <div class="brand-title-wrap">
+      <div class="brand-title">皮克西共學教育</div>
+    </div><br>
+    <div class="brand-sub">PiXiE Education</div>
+  </div>
+
+  <div class="card">
+    <h1>新生問班</h1>
+    <div class="title-line"></div>
+
+    <form method="POST" action="/parent/new-student-submit">
+
+      <label>學生姓名</label>
+      <input type="text" name="student_name" placeholder="請輸入學生姓名" required>
+
+      <label>就讀學校</label>
+      <input type="text" name="school" placeholder="例如：文山國小" required>
+
+      <label>學習經歷</label>
+      <textarea name="learning_experience" placeholder="例如：是否學過英文、目前程度、使用過的教材等"></textarea>
+
+      <div class="row">
+        <div>
+          <label>家長姓名</label>
+          <input type="text" name="parent_name" placeholder="請輸入家長姓名" required>
+        </div>
+
+        <div>
+          <label>電話</label>
+          <input type="tel" name="phone" placeholder="請輸入聯絡電話" required>
+        </div>
       </div>
 
-      <form method="POST" action="/parent/new-student-submit">
-        <label>學生姓名</label>
-        <input type="text" name="student_name" placeholder="請輸入學生姓名" required>
+      <button type="submit">送出問班資料</button>
+    </form>
 
-        <label>就讀學校</label>
-        <input type="text" name="school" placeholder="例如：文山國小" required>
-
-        <label>學習經歷</label>
-        <textarea name="learning_experience" placeholder="例如：是否學過英文、目前程度、使用過的教材等"></textarea>
-
-        <label>家長姓名</label>
-        <input type="text" name="parent_name" placeholder="請輸入家長姓名" required>
-
-        <label>電話</label>
-        <input type="tel" name="phone" placeholder="請輸入聯絡電話" required>
-
-        <button type="submit">送出問班資料</button>
-      </form>
-
-      <div class="note">
-        資料僅供皮克西美語聯繫與課程安排使用。
-      </div>
+    <div class="note">
+      資料僅供皮克西共學教育聯繫與課程安排使用。
     </div>
   </div>
+
+</div>
 </body>
 </html>
