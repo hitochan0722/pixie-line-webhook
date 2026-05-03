@@ -225,22 +225,52 @@ def api_bind_student():
 
 @app.route("/api/bind-confirm", methods=["POST"])
 def api_bind_confirm():
-    data = request.get_json()
+    data = request.get_json() or {}
 
-    student_id = data.get("student_id", "").strip()
-    line_user_id = data.get("line_user_id", "").strip()
+    student_id = (
+        data.get("student_id")
+        or data.get("bind")
+        or data.get("student")
+        or ""
+    ).strip()
 
-    if not student_id or not line_user_id:
+    line_user_id = (
+        data.get("line_user_id")
+        or data.get("userId")
+        or ""
+    ).strip()
+
+    print("收到綁定資料 student_id =", student_id)
+    print("收到綁定資料 line_user_id =", line_user_id)
+
+    if not student_id:
         return jsonify({
             "ok": False,
-            "message": "資料不完整，請重新開啟連結。"
+            "message": "缺少學生代碼，請重新開啟連結。"
+        })
+
+    if not line_user_id:
+        return jsonify({
+            "ok": False,
+            "message": "無法取得 LINE 身分，請用 LINE 開啟連結。"
         })
 
     students = load_students()
-    updated = False
 
     for s in students:
-        if s.get("student_id", "").strip() == student_id:
+        sid = (
+            s.get("student_id")
+            or s.get("學生ID")
+            or s.get("學生代碼")
+            or ""
+        ).strip()
+
+        if sid == student_id:
+            if "家長ID1" not in s:
+                s["家長ID1"] = ""
+
+            if "家長ID2" not in s:
+                s["家長ID2"] = ""
 
             id1 = s.get("家長ID1", "").strip()
             id2 = s.get("家長ID2", "").strip()
@@ -253,29 +283,28 @@ def api_bind_confirm():
 
             if not id1:
                 s["家長ID1"] = line_user_id
-                updated = True
-            elif not id2:
-                s["家長ID2"] = line_user_id
-                updated = True
-            else:
+                save_students(students)
                 return jsonify({
-                    "ok": False,
-                    "message": "此學生已綁定兩位家長，請聯絡老師。"
+                    "ok": True,
+                    "message": "綁定成功！之後即可使用家長專區。"
                 })
 
-            break
+            if not id2:
+                s["家長ID2"] = line_user_id
+                save_students(students)
+                return jsonify({
+                    "ok": True,
+                    "message": "綁定成功！之後即可使用家長專區。"
+                })
 
-    if not updated:
-        return jsonify({
-            "ok": False,
-            "message": "找不到學生或無法綁定。"
-        })
-
-    save_students(students)
+            return jsonify({
+                "ok": False,
+                "message": "此學生已綁定兩位家長，請聯絡老師。"
+            })
 
     return jsonify({
-        "ok": True,
-        "message": "綁定成功！之後即可使用家長專區。"
+        "ok": False,
+        "message": f"找不到學生代碼：{student_id}，請聯絡老師。"
     })
 
 # ========================
