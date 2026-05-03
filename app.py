@@ -24,6 +24,7 @@ def line_headers():
 def reply_to_line(reply_token, text):
     if not reply_token:
         return
+
     requests.post(
         "https://api.line.me/v2/bot/message/reply",
         headers=line_headers(),
@@ -35,9 +36,14 @@ def reply_to_line(reply_token, text):
 
 def push_to_line(to, messages):
     if not to:
+        print("沒有 TEACHER_GROUP_ID，無法推送 LINE 群組")
         return
 
-    requests.post(
+    if not CHANNEL_ACCESS_TOKEN:
+        print("沒有 LINE CHANNEL ACCESS TOKEN，無法推送 LINE")
+        return
+
+    r = requests.post(
         "https://api.line.me/v2/bot/message/push",
         headers=line_headers(),
         json={
@@ -45,6 +51,8 @@ def push_to_line(to, messages):
             "messages": messages
         }
     )
+
+    print("LINE push status:", r.status_code, r.text)
 
 # ========================
 # 學生資料
@@ -90,7 +98,6 @@ def find_student(text, user_id):
 
 def add_pickup(student_name, parent_user_id):
     now = datetime.now().strftime("%H:%M:%S")
-
     record_id = f"{student_name}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
     item = {
@@ -107,7 +114,6 @@ def add_pickup(student_name, parent_user_id):
     return item
 
 def notify_teacher(item):
-
     student_name = item["student_name"]
     record_id = item["id"]
 
@@ -135,13 +141,10 @@ def notify_teacher(item):
 
 @app.route("/callback", methods=["POST"])
 def callback():
-
     body = request.get_json()
-
     events = body.get("events", [])
 
     for event in events:
-
         event_type = event.get("type")
         reply_token = event.get("replyToken")
 
@@ -149,31 +152,22 @@ def callback():
         user_id = source.get("userId")
 
         if event_type == "message":
-
             message = event.get("message", {})
             text = message.get("text", "").strip()
 
             if text.startswith("接"):
-
                 student = find_student(text, user_id)
 
                 if not student:
-                    reply_to_line(
-                        reply_token,
-                        "請輸入：接＋學生姓名"
-                    )
+                    reply_to_line(reply_token, "請輸入：接＋學生姓名")
                     continue
 
                 student_name = get_student_name(student)
 
                 item = add_pickup(student_name, user_id)
-
                 notify_teacher(item)
 
-                reply_to_line(
-                    reply_token,
-                    f"已收到 {student_name} 接送通知"
-                )
+                reply_to_line(reply_token, f"已收到 {student_name} 接送通知")
 
     return "OK"
 
@@ -183,7 +177,6 @@ def callback():
 
 @app.route("/api/pickup")
 def api_pickup():
-
     new_items = []
 
     for item in pickup_queue:
@@ -221,22 +214,21 @@ def parent_attendance_page():
 def contact_page():
     return render_template("contact.html")
 
-@app.route("/new-student")
-def new_student():
+@app.route("/parent/new-student")
+def parent_new_student_page():
     return render_template("new-student.html")
 
 # ========================
 # 新生問班送出
 # ========================
 
-@app.route("/new-student-submit", methods=["POST"])
-def new_student_submit():
-
-    student_name = request.form.get("student_name", "")
-    school = request.form.get("school", "")
-    learning_experience = request.form.get("learning_experience", "")
-    parent_name = request.form.get("parent_name", "")
-    phone = request.form.get("phone", "")
+@app.route("/parent/new-student-submit", methods=["POST"])
+def parent_new_student_submit():
+    student_name = request.form.get("student_name", "").strip()
+    school = request.form.get("school", "").strip()
+    learning_experience = request.form.get("learning_experience", "").strip()
+    parent_name = request.form.get("parent_name", "").strip()
+    phone = request.form.get("phone", "").strip()
 
     data = {
         "form_type": "new_student",
@@ -245,21 +237,23 @@ def new_student_submit():
         "learning_experience": learning_experience,
         "parent_name": parent_name,
         "phone": phone,
-        "source": "新生入口"
+        "source": "新生入口",
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
     # 傳 Google Sheet
-
     gas_url = os.getenv("NEW_STUDENT_GAS_URL")
 
     if gas_url:
         try:
-            requests.post(gas_url, json=data, timeout=10)
+            r = requests.post(gas_url, json=data, timeout=10)
+            print("新生 Sheet status:", r.status_code, r.text)
         except Exception as e:
-            print("Sheet 寫入失敗:", e)
+            print("新生 Sheet 寫入失敗:", e)
+    else:
+        print("沒有設定 NEW_STUDENT_GAS_URL，所以沒有寫入 Sheet")
 
-    # 傳 LINE 群組
-
+    # 傳 LINE 老師群組
     message = f"""📩 新生問班資料
 
 學生姓名：{student_name}
@@ -275,21 +269,27 @@ def new_student_submit():
 
     return """
     <html>
-    <body style="font-family:Arial; text-align:center; padding:40px;">
-      <h2>資料已送出</h2>
-      <p>謝謝您填寫問班資料，老師會盡快與您聯繫。</p>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family:'Microsoft JhengHei',Arial; text-align:center; padding:40px; background:#fff7ef;">
+      <div style="background:white; border-radius:22px; padding:30px 20px; max-width:480px; margin:0 auto; box-shadow:0 8px 24px rgba(0,0,0,0.08);">
+        <h2 style="color:#e28a4f;">資料已送出</h2>
+        <p style="font-size:18px; line-height:1.7;">謝謝您填寫問班資料，老師會盡快與您聯繫。</p>
+        <a href="/parent" style="display:inline-block; margin-top:18px; background:#e28a4f; color:white; padding:12px 22px; border-radius:16px; text-decoration:none; font-weight:bold;">回家長專區</a>
+      </div>
     </body>
     </html>
     """
 
 @app.route("/version")
 def version():
-    return "PIXIE PICKUP EMBEDDED BOARD VERSION"
+    return "PIXIE PICKUP + NEW STUDENT VERSION"
 
 # ========================
 
 if __name__ == "__main__":
-
     port = int(os.environ.get("PORT", 5000))
 
     app.run(
