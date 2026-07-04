@@ -3,245 +3,240 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>皮克西共學教育｜家長專區</title>
+<title>家長專區｜皮克西共學教育</title>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
 <style>
 :root{
   --navy:#252b5f;
   --cream:#fffaf2;
   --yellow:#fff2a8;
   --pink:#f08a9c;
-  --pink2:#f6b4bf;
-  --blue:#7b84c5;
-  --text:#252b5f;
+  --white:#fffdfa;
 }
-*{box-sizing:border-box}
 body{
   margin:0;
   background:var(--cream);
-  color:var(--text);
   font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;
+  color:var(--navy);
 }
 .page{
   min-height:100vh;
-  max-width:900px;
+  max-width:720px;
   margin:0 auto;
-  padding:24px 18px 34px;
-  border:4px solid var(--pink2);
-  border-radius:30px;
+  padding:28px 18px 42px;
 }
 .brand{
   text-align:center;
-  margin:18px 0 28px;
+  margin:16px 0 26px;
 }
 .brand-title-wrap{
   display:inline-block;
   background:var(--navy);
   padding:13px 34px 17px;
-  border-radius:28px 34px 30px 32px;
-  transform:rotate(-1.5deg);
-  box-shadow:
-    2px 2px 0 rgba(37,43,95,.45),
-    -2px 1px 0 rgba(37,43,95,.25);
+  border-radius:30px;
 }
 .brand-title{
   color:var(--yellow);
-  font-size:clamp(34px,8vw,58px);
+  font-size:34px;
   font-weight:900;
-  letter-spacing:4px;
-  line-height:1.08;
-  text-shadow:
-    1px 1px 0 #fff3b8,
-    -1px 0 0 #fff3b8;
 }
-.brand-sub{
-  display:inline-block;
-  margin-top:-2px;
-  background:var(--yellow);
-  color:var(--navy);
-  padding:8px 26px;
-  border-radius:15px;
-  font-size:clamp(22px,5vw,36px);
+.card{
+  background:var(--white);
+  border:4px solid var(--navy);
+  border-radius:34px;
+  padding:32px 24px;
+  text-align:center;
+  box-shadow:0 8px 22px rgba(0,0,0,.06);
+}
+h1{
+  font-size:34px;
+  margin:6px 0 16px;
+}
+.student{
+  font-size:22px;
   font-weight:900;
-  letter-spacing:1px;
-  transform:rotate(.3deg);
+  line-height:1.8;
+  margin:18px 0 24px;
 }
-.menu-grid{
+.menu{
   display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:22px;
-  margin:12px auto 18px;
+  gap:16px;
+  margin-top:22px;
 }
-.menu-card{
-  position:relative;
-  min-height:145px;
-  padding:20px 22px;
-  display:flex;
-  align-items:center;
-  text-decoration:none;
-  color:var(--navy);
-  background:#fffdfa;
-  border-radius:34px 38px 32px 36px;
-  border:4px solid var(--navy);
-  box-shadow:
-    2px 2px 0 rgba(37,43,95,.18),
-    -2px 1px 0 rgba(37,43,95,.15),
-    inset 1px 1px 0 rgba(37,43,95,.12);
-}
-.menu-card:before{
-  content:"";
-  position:absolute;
-  inset:-4px;
-  border:3px solid var(--navy);
-  border-radius:39px 33px 37px 31px;
-  transform:rotate(-.5deg);
-  pointer-events:none;
-  opacity:.9;
-}
-.menu-card:nth-child(even):before{ transform:rotate(.6deg); }
-.menu-card .icon{
-  font-size:44px;
-  width:58px;
-  text-align:center;
-  margin-right:15px;
-}
-.menu-card .main{
-  font-size:clamp(28px,6vw,42px);
-  font-weight:900;
-  letter-spacing:2px;
-  line-height:1.08;
-  text-shadow:.6px .6px 0 var(--navy);
-}
-.menu-card .line{
-  width:76%;
-  height:3px;
-  margin:12px 0 6px;
-  background:var(--pink);
-  border-radius:99px;
-}
-.menu-card .sub{
-  color:#333;
-  font-size:clamp(15px,3.6vw,22px);
-  font-weight:900;
-  letter-spacing:1px;
-}
-.menu-card .arrow{
-  margin-left:auto;
-  font-size:50px;
-  line-height:1;
-  color:var(--pink);
-  font-weight:900;
-}
-.menu-card.blue .line{background:var(--blue);}
-.menu-card.blue .arrow{color:var(--blue);}
-.footer-heart{
-  color:var(--pink);
-  text-align:center;
-  font-size:42px;
-  margin-top:16px;
-}
-.info-card{
-  position:relative;
-  background:#fffdfa;
-  border:4px solid var(--navy);
-  border-radius:30px 36px 32px 34px;
-  padding:20px 22px;
-  margin:16px auto;
-  max-width:700px;
-  text-align:left;
-  box-shadow:2px 2px 0 rgba(37,43,95,.18);
-}
-.info-card:before{
-  content:"";
-  position:absolute;
-  inset:-4px;
-  border:3px solid var(--navy);
-  border-radius:36px 30px 34px 32px;
-  transform:rotate(.4deg);
-  pointer-events:none;
-  opacity:.9;
-}
-.info-title{
-  color:var(--pink);
-  font-size:24px;
-  font-weight:900;
-  margin-bottom:8px;
-}
-.info-text{
-  font-size:21px;
-  line-height:1.75;
-  font-weight:800;
-  color:#333;
-}
-.back{
+.menu a{
   display:block;
-  width:min(360px,90%);
-  margin:24px auto 0;
-  text-align:center;
+  text-decoration:none;
   background:var(--navy);
   color:var(--yellow);
-  padding:16px;
+  padding:18px;
   border-radius:22px;
-  text-decoration:none;
   font-size:22px;
   font-weight:900;
 }
-@media(max-width:700px){
-  .page{border:0;border-radius:0;padding:18px 14px 28px;}
-  .menu-grid{grid-template-columns:1fr;gap:16px;}
-  .menu-card{min-height:124px;}
+.notice{
+  display:none;
+  text-align:left;
+  margin-top:22px;
+  background:#fff4f6;
+  border:3px solid var(--pink);
+  border-radius:24px;
+  padding:22px;
+  font-size:18px;
+  line-height:1.8;
+  font-weight:700;
+}
+.notice h2{
+  text-align:center;
+  margin:0 0 14px;
+  font-size:26px;
+  color:var(--navy);
+}
+.notice ul{
+  margin:10px 0 10px 20px;
+  padding:0;
+}
+.notice li{
+  margin:6px 0;
+}
+.small{
+  text-align:center;
+  font-size:16px;
+  margin-top:16px;
+  color:#555;
 }
 </style>
 </head>
+
 <body>
+
 <div class="page">
+
   <div class="brand">
-    <div class="brand-title-wrap"><div class="brand-title">皮克西共學教育</div></div><br>
-    <div class="brand-sub">PiXiE Education</div>
+    <div class="brand-title-wrap">
+      <div class="brand-title">皮克西共學教育</div>
+    </div>
   </div>
-  <div class="menu-grid">
-    
-<a class="menu-card" href="/parent/pickup">
-  <div class="icon">♡</div>
-  <div class="txt">
-    <div class="main">接送通知</div>
-    <div class="line"></div>
-    <div class="sub">到校接送・老師通知</div>
-  </div>
-  <div class="arrow">›</div>
-</a>
 
-<a class="menu-card blue" href="/parent/leave">
-  <div class="icon">✎</div>
-  <div class="txt">
-    <div class="main">請假</div>
-    <div class="line"></div>
-    <div class="sub">請假申請・狀態確認</div>
-  </div>
-  <div class="arrow">›</div>
-</a>
+  <div class="card">
 
-<a class="menu-card" href="/parent/attendance">
-  <div class="icon">✦</div>
-  <div class="txt">
-    <div class="main">出缺席紀錄</div>
-    <div class="line"></div>
-    <div class="sub">到課紀錄・缺席查詢</div>
-  </div>
-  <div class="arrow">›</div>
-</a>
+    <h1>家長專區</h1>
 
-<a class="menu-card blue" href="/contact">
-  <div class="icon">☎</div>
-  <div class="txt">
-    <div class="main">聯絡與匯款資訊</div>
-    <div class="line"></div>
-    <div class="sub">電話・地址・帳號</div>
-  </div>
-  <div class="arrow">›</div>
-</a>
+    <div class="student" id="studentBox">
+      正在確認家長身分...
+    </div>
+
+    <div class="menu" id="menuBox" style="display:none;">
+      <a href="/parent/pickup">接送通知</a>
+      <a href="/parent/leave">請假申請</a>
+      <a href="/parent/attendance">出缺席紀錄</a>
+    </div>
+
+    <div class="notice" id="noticeBox">
+      <h2>尚未完成家長身分綁定</h2>
+
+      <p>
+        為了保護學生資料安全，家長專區需要先完成身分綁定後才能使用。
+      </p>
+
+      <p>完成綁定後即可使用：</p>
+
+      <ul>
+        <li>🚗 接送通知</li>
+        <li>📝 線上請假</li>
+        <li>📅 出缺席查詢</li>
+      </ul>
+
+      <p>
+        若您尚未收到專屬綁定連結，請聯繫皮克西老師協助。
+      </p>
+
+      <div class="small">
+        ※ 爸爸與媽媽皆可使用同一條學生專屬連結各自綁定。
+      </div>
+    </div>
 
   </div>
-  <div class="footer-heart">♡</div>
+
 </div>
+
+<script>
+const LIFF_ID = "2009899432-9KT6ckHI";
+
+function showUnbound(message){
+  document.getElementById("studentBox").innerText = message || "尚未完成家長身分綁定";
+  document.getElementById("menuBox").style.display = "none";
+  document.getElementById("noticeBox").style.display = "block";
+}
+
+async function init(){
+  const studentBox = document.getElementById("studentBox");
+  const menuBox = document.getElementById("menuBox");
+
+  try{
+    await liff.init({ liffId: LIFF_ID });
+
+    if(!liff.isLoggedIn()){
+      liff.login({
+        redirectUri: window.location.href
+      });
+      return;
+    }
+
+    const profile = await liff.getProfile();
+    const lineUserId = profile.userId;
+
+    const res = await fetch(`/api/parent-student?line_user_id=${encodeURIComponent(lineUserId)}`);
+    const data = await res.json();
+
+    if(!data.ok){
+      showUnbound("尚未完成家長身分綁定");
+      return;
+    }
+
+    const students = data.students || [];
+
+    if(students.length === 0){
+      showUnbound("尚未完成家長身分綁定");
+      return;
+    }
+
+    if(students.length === 1){
+      const s = students[0];
+
+      studentBox.innerHTML = `
+        ${s.student_name} ${s.english_name || ""} 家長您好<br>
+        年級：${s.grade || ""}<br>
+        班級：${s.class_name || ""}
+      `;
+
+      menuBox.style.display = "grid";
+      return;
+    }
+
+    let html = "請選擇學生：<br><br>";
+
+    students.forEach(s => {
+      html += `
+        <div style="margin-bottom:14px;">
+          ${s.student_name} ${s.english_name || ""}<br>
+          <span style="font-size:18px;">${s.grade || ""}｜${s.class_name || ""}</span>
+        </div>
+      `;
+    });
+
+    studentBox.innerHTML = html;
+    menuBox.style.display = "grid";
+
+  }catch(err){
+    console.log(err);
+    showUnbound("目前無法確認家長身分");
+  }
+}
+
+init();
+</script>
+
 </body>
 </html>
