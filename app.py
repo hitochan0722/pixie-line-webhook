@@ -60,6 +60,7 @@ def push_to_line(to, messages):
 
 def load_students():
     if not os.path.exists(STUDENTS_FILE):
+        print("找不到 students.csv")
         return []
 
     with open(STUDENTS_FILE, newline="", encoding="utf-8-sig") as f:
@@ -162,7 +163,7 @@ def notify_teacher(item):
 
 @app.route("/callback", methods=["POST"])
 def callback():
-    body = request.get_json()
+    body = request.get_json() or {}
     events = body.get("events", [])
 
     for event in events:
@@ -195,6 +196,34 @@ def callback():
 # ========================
 # API
 # ========================
+
+@app.route("/api/bind-student")
+def api_bind_student():
+    student_id = request.args.get("student_id", "").strip()
+
+    students = load_students()
+
+    for s in students:
+        sid = (
+            s.get("student_id")
+            or s.get("學生ID")
+            or s.get("學生代碼")
+            or ""
+        ).strip()
+
+        if sid == student_id:
+            return jsonify({
+                "ok": True,
+                "student_name": s.get("學生姓名", ""),
+                "english_name": s.get("英文姓名", ""),
+                "grade": s.get("年級", ""),
+                "class_name": s.get("班級", "")
+            })
+
+    return jsonify({
+        "ok": False,
+        "message": "找不到學生資料，請聯絡老師。"
+    })
 
 @app.route("/api/pickup")
 def api_pickup():
@@ -293,6 +322,7 @@ def api_bind_confirm():
         "ok": False,
         "message": f"找不到學生代碼：{student_id}，請聯絡老師。"
     })
+
 @app.route("/api/debug-student")
 def api_debug_student():
     student_id = request.args.get("student_id", "").strip()
@@ -314,6 +344,7 @@ def api_debug_student():
         "ok": False,
         "message": "找不到學生"
     })
+
 # ========================
 # 頁面 routes
 # ========================
@@ -419,7 +450,7 @@ def parent_new_student_submit():
 
 @app.route("/version")
 def version():
-    return "PIXIE PICKUP + NEW STUDENT + BIND VERSION"
+    return "PIXIE PICKUP + NEW STUDENT + BIND VERSION 2026-07-06"
 
 # ========================
 
