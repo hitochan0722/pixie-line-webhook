@@ -245,8 +245,11 @@ def api_bind_confirm():
         or ""
     ).strip()
 
-    print("收到綁定資料 student_id =", student_id)
-    print("收到綁定資料 line_user_id =", line_user_id)
+print("======================")
+print("收到原始資料：", data)
+print("student_id =", student_id)
+print("line_user_id =", line_user_id)
+print("======================")
 
     if not student_id:
         return jsonify({
