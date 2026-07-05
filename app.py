@@ -207,27 +207,6 @@ def api_pickup():
 
     return jsonify(new_items)
 
-@app.route("/api/bind-student")
-def api_bind_student():
-    student_id = request.args.get("student_id", "").strip()
-
-    students = load_students()
-
-    for s in students:
-        if s.get("student_id", "").strip() == student_id:
-            return jsonify({
-                "ok": True,
-                "student_name": s.get("學生姓名", ""),
-                "english_name": s.get("英文姓名", ""),
-                "grade": s.get("年級", ""),
-                "class_name": s.get("班級", "")
-            })
-
-    return jsonify({
-        "ok": False,
-        "message": "找不到學生資料，請聯絡老師。"
-    })
-
 @app.route("/api/bind-confirm", methods=["POST"])
 def api_bind_confirm():
     data = request.get_json() or {}
@@ -245,19 +224,19 @@ def api_bind_confirm():
         or ""
     ).strip()
 
-print("======================")
-print("收到原始資料：", data)
-print("student_id =", student_id)
-print("line_user_id =", line_user_id)
-print("======================")
+    print("======================")
+    print("收到原始資料：", data)
+    print("student_id =", student_id)
+    print("line_user_id =", line_user_id)
+    print("======================")
 
-if not student_id:
+    if not student_id:
         return jsonify({
             "ok": False,
             "message": "缺少學生代碼，請重新開啟連結。"
         })
 
-if not line_user_id:
+    if not line_user_id:
         return jsonify({
             "ok": False,
             "message": "無法取得 LINE 身分，請用 LINE 開啟連結。"
@@ -265,7 +244,7 @@ if not line_user_id:
 
     students = load_students()
 
-for s in students:
+    for s in students:
         sid = (
             s.get("student_id")
             or s.get("學生ID")
@@ -273,7 +252,7 @@ for s in students:
             or ""
         ).strip()
 
-if sid == student_id:
+        if sid == student_id:
             if "家長ID1" not in s:
                 s["家長ID1"] = ""
 
@@ -286,7 +265,7 @@ if sid == student_id:
             if line_user_id == id1 or line_user_id == id2:
                 return jsonify({
                     "ok": True,
-                    "message": "此家長已完成綁定。"
+                    "message": "您已經綁定過此學生。"
                 })
 
             if not id1:
