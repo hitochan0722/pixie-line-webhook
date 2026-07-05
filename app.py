@@ -6,6 +6,8 @@ app = Flask(__name__)
 
 CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN") or os.getenv("CHANNEL_ACCESS_TOKEN")
 TEACHER_GROUP_ID = os.getenv("TEACHER_GROUP_ID")
+STUDENT_GAS_URL = os.getenv("STUDENT_GAS_URL")
+
 STUDENTS_FILE = "students.csv"
 
 pickup_queue = []
@@ -89,6 +91,27 @@ def save_students(students):
         )
         writer.writeheader()
         writer.writerows(students)
+
+def update_student_binding_to_sheet(student_id, line_user_id):
+    gas_url = os.getenv("STUDENT_GAS_URL")
+
+    if not gas_url:
+        print("沒有設定 STUDENT_GAS_URL")
+        return False
+
+    payload = {
+        "form_type": "bind_student",
+        "student_id": student_id,
+        "line_user_id": line_user_id
+    }
+
+    try:
+        r = requests.post(gas_url, json=payload, timeout=10)
+        print("綁定寫入 Sheet status:", r.status_code, r.text)
+        return r.status_code == 200
+    except Exception as e:
+        print("綁定寫入 Sheet 失敗:", e)
+        return False
 
 def get_student_name(student):
     return (
@@ -292,6 +315,7 @@ def api_bind_confirm():
             id2 = s.get("家長ID2", "").strip()
 
             if line_user_id == id1 or line_user_id == id2:
+                update_student_binding_to_sheet(student_id, line_user_id)
                 return jsonify({
                     "ok": True,
                     "message": "您已經綁定過此學生。"
@@ -300,6 +324,7 @@ def api_bind_confirm():
             if not id1:
                 s["家長ID1"] = line_user_id
                 save_students(students)
+                update_student_binding_to_sheet(student_id, line_user_id)
                 return jsonify({
                     "ok": True,
                     "message": "綁定成功！之後即可使用家長專區。"
@@ -308,6 +333,7 @@ def api_bind_confirm():
             if not id2:
                 s["家長ID2"] = line_user_id
                 save_students(students)
+                update_student_binding_to_sheet(student_id, line_user_id)
                 return jsonify({
                     "ok": True,
                     "message": "綁定成功！之後即可使用家長專區。"
@@ -450,7 +476,7 @@ def parent_new_student_submit():
 
 @app.route("/version")
 def version():
-    return "PIXIE PICKUP + NEW STUDENT + BIND VERSION 2026-07-06"
+    return "PIXIE PICKUP + NEW STUDENT + BIND + SHEET SYNC VERSION 2026-07-06"
 
 # ========================
 
