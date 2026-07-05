@@ -251,13 +251,13 @@ print("student_id =", student_id)
 print("line_user_id =", line_user_id)
 print("======================")
 
-    if not student_id:
+if not student_id:
         return jsonify({
             "ok": False,
             "message": "缺少學生代碼，請重新開啟連結。"
         })
 
-    if not line_user_id:
+if not line_user_id:
         return jsonify({
             "ok": False,
             "message": "無法取得 LINE 身分，請用 LINE 開啟連結。"
@@ -265,7 +265,7 @@ print("======================")
 
     students = load_students()
 
-    for s in students:
+for s in students:
         sid = (
             s.get("student_id")
             or s.get("學生ID")
@@ -273,7 +273,7 @@ print("======================")
             or ""
         ).strip()
 
-        if sid == student_id:
+if sid == student_id:
             if "家長ID1" not in s:
                 s["家長ID1"] = ""
 
