@@ -311,7 +311,27 @@ def api_bind_confirm():
         "ok": False,
         "message": f"找不到學生代碼：{student_id}，請聯絡老師。"
     })
+@app.route("/api/debug-student")
+def api_debug_student():
+    student_id = request.args.get("student_id", "").strip()
 
+    students = load_students()
+
+    for s in students:
+        sid = (
+            s.get("student_id")
+            or s.get("學生ID")
+            or s.get("學生代碼")
+            or ""
+        ).strip()
+
+        if sid == student_id:
+            return jsonify(s)
+
+    return jsonify({
+        "ok": False,
+        "message": "找不到學生"
+    })
 # ========================
 # 頁面 routes
 # ========================
