@@ -2,79 +2,104 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>接送通知｜皮克西共學教育</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
-:root{--navy:#252b5f;--cream:#fffaf2;--yellow:#fff2a8;--pink:#f08a9c;--pink2:#f6b4bf}
+:root{--navy:#252b5f;--cream:#fffaf2;--yellow:#fff2a8;--pink:#ef8498;--pink-soft:#fff2f5;--pink-line:#f3adba}
 *{box-sizing:border-box}
-body{margin:0;background:var(--cream);color:var(--navy);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif}
-.page{min-height:100vh;max-width:900px;margin:0 auto;padding:24px 18px 34px}
-.brand{text-align:center;margin:18px 0 28px}
-.brand-title{display:inline-block;background:var(--navy);color:var(--yellow);padding:18px 38px;border-radius:30px;font-size:clamp(34px,8vw,58px);font-weight:900;letter-spacing:3px}
-.brand-sub{display:inline-block;margin-top:-4px;background:var(--yellow);padding:8px 28px;border-radius:16px;font-size:clamp(22px,5vw,36px);font-weight:900}
-.card{background:#fffdfa;border:4px solid var(--navy);border-radius:34px;padding:24px;max-width:680px;margin:0 auto;box-shadow:2px 2px 0 rgba(37,43,95,.18)}
-.title{font-size:clamp(34px,8vw,50px);font-weight:900;text-align:center}
-.line{width:68%;height:4px;background:var(--pink);border-radius:99px;margin:14px auto 20px}
-label{display:block;font-size:20px;font-weight:900;margin:16px 0 8px}
-input,select,textarea{width:100%;border:4px solid var(--navy);border-radius:22px;padding:16px;font-size:20px;font-weight:800;background:#fffdfa;color:#333}
-textarea{min-height:110px;resize:vertical}
-.student-info{background:#fff4f6;border:3px solid var(--pink2);border-radius:20px;padding:14px 16px;margin-bottom:12px;font-size:18px;font-weight:800;line-height:1.6}
-.btn{display:block;width:100%;margin-top:20px;border:0;border-radius:24px;padding:18px;background:var(--pink);color:white;font-size:26px;font-weight:900;text-align:center;text-decoration:none}
+html,body{margin:0;width:100%;min-height:100%;background:var(--cream)}
+body{color:var(--navy);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;overflow-x:hidden}
+.page{width:100%;max-width:760px;min-height:100vh;margin:0 auto;padding:24px 16px 36px}
+.brand{text-align:center;margin:8px 0 24px}
+.brand-title{display:block;width:min(100%,620px);margin:0 auto;background:var(--navy);color:var(--yellow);padding:18px 20px;border-radius:30px;font-size:clamp(32px,8vw,52px);font-weight:900;letter-spacing:2px;white-space:nowrap}
+.brand-sub{display:inline-block;margin-top:-5px;background:var(--yellow);padding:8px 24px;border-radius:15px;font-size:clamp(20px,5vw,32px);font-weight:900}
+.card{width:100%;max-width:680px;margin:0 auto;padding:24px 20px 28px;background:#fffdfa;border:4px solid var(--navy);border-radius:34px;box-shadow:2px 2px 0 rgba(37,43,95,.15);overflow:hidden}
+.title{text-align:center;font-size:clamp(34px,8vw,50px);font-weight:900}
+.line{width:68%;height:4px;margin:14px auto 22px;background:var(--pink);border-radius:99px}
+.student-info{width:100%;margin:0 0 18px;padding:15px 16px;background:var(--pink-soft);border:3px solid var(--pink-line);border-radius:20px;font-size:18px;font-weight:900;line-height:1.6}
+.field{width:100%;margin-top:16px}
+label{display:block;margin:0 0 8px;font-size:20px;font-weight:900}
+.control-wrap{position:relative;width:100%;min-width:0}
+input,select,textarea,.student-fixed{display:block;width:100%;min-width:0;max-width:100%;margin:0;border:4px solid var(--navy);border-radius:22px;background:#fffdfa;color:#333;font:800 20px/1.25 "Microsoft JhengHei","Noto Sans TC",Arial,sans-serif}
+input,select,.student-fixed{min-height:64px;padding:14px 54px 14px 16px}
+.student-fixed{padding-right:16px;display:flex;align-items:center}
+textarea{min-height:120px;padding:16px;resize:vertical}
+select{-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--navy) 50%),linear-gradient(135deg,var(--navy) 50%,transparent 50%);background-position:calc(100% - 24px) 27px,calc(100% - 16px) 27px;background-size:8px 8px,8px 8px;background-repeat:no-repeat}
+input[type="date"]{-webkit-appearance:none;appearance:none;padding-right:16px;text-align:center}
+input[type="date"]::-webkit-date-and-time-value{text-align:center;min-height:30px}
+input[type="date"]::-webkit-calendar-picker-indicator{margin-left:0}
+.btn{display:block;width:100%;margin-top:22px;padding:18px 16px;border:0;border-radius:24px;background:var(--pink);color:white;text-align:center;text-decoration:none;font-size:26px;font-weight:900}
 .btn:disabled{opacity:.55}
 .back{background:var(--navy);color:var(--yellow)}
-.note{margin-top:14px;font-size:16px;line-height:1.7;color:#555;font-weight:700;text-align:center}
+.note{margin-top:15px;color:#555;text-align:center;font-size:16px;font-weight:700;line-height:1.7}
 .note.error{color:#b3261e}.note.success{color:#16723d}
-.hidden{display:none}
-@media(max-width:700px){.page{padding:18px 14px 28px}.card{padding:20px 16px}}
+.hidden{display:none!important}
+@media(max-width:520px){.page{padding:14px 12px 28px}.brand{margin-top:0}.brand-title{font-size:clamp(28px,8.5vw,40px);padding:15px 10px}.card{padding:22px 16px 26px;border-radius:28px}input,select,textarea,.student-fixed{font-size:18px}}
 </style>
 </head>
 <body>
 <div class="page">
-  <div class="brand"><div class="brand-title">皮克西共學教育</div><br><div class="brand-sub">PiXiE Education</div></div>
-  <div class="card">
+  <div class="brand"><div class="brand-title">皮克西共學教育</div><div class="brand-sub">PiXiE Education</div></div>
+  <main class="card">
     <div class="title">接送通知</div><div class="line"></div>
     <div id="studentInfo" class="student-info">正在讀取已綁定學生…</div>
     <div id="pickupForm" class="hidden">
-      <label for="studentSelect">接送學生</label>
-      <select id="studentSelect"></select>
+      <div class="field">
+        <label>接送學生</label>
+        <div id="singleStudent" class="student-fixed hidden"></div>
+        <div id="multiStudentWrap" class="control-wrap hidden"><select id="studentSelect"></select></div>
+      </div>
       <button id="pickupBtn" class="btn" type="button">我要接送</button>
     </div>
     <div id="status" class="note">家長不需要輸入學生姓名。</div>
     <a class="btn back" href="/parent">返回家長專區</a>
-  </div>
+  </main>
 </div>
 <script>
 const LIFF_ID="2009899432-t8zSVmZ5";
-let profile=null,students=[];
+let profile=null,students=[],selectedStudentId="";
 const statusBox=document.getElementById("status");
-function status(msg,type=""){statusBox.textContent=msg;statusBox.className="note "+type;}
+function showStatus(m,t=""){statusBox.textContent=m;statusBox.className="note "+t;}
+function studentLabel(s){return `${s.student_name} ${s.english_name||""}｜${s.class_name||""}`;}
 async function init(){
  try{
   await liff.init({liffId:LIFF_ID});
   if(!liff.isLoggedIn()){liff.login({redirectUri:location.href});return;}
   profile=await liff.getProfile();
-  const res=await fetch(`/api/parent-student?line_user_id=${encodeURIComponent(profile.userId)}`);
-  const data=await res.json();
-  if(!res.ok||!data.ok)throw new Error(data.message||"無法確認家長身分");
-  students=data.students||[];
+  const r=await fetch(`/api/parent-student?line_user_id=${encodeURIComponent(profile.userId)}`);
+  const d=await r.json();
+  if(!r.ok||!d.ok)throw new Error(d.message||"無法確認家長身分");
+  students=d.students||[];
   if(!students.length)throw new Error("尚未綁定學生");
-  const select=document.getElementById("studentSelect");
-  select.innerHTML=students.map(s=>`<option value="${s.student_id}">${s.student_name} ${s.english_name||""}｜${s.class_name||""}</option>`).join("");
-  document.getElementById("studentInfo").textContent=students.length===1
-   ? `已綁定學生：${students[0].student_name} ${students[0].english_name||""}｜${students[0].class_name||""}`
-   : `此帳號已綁定 ${students.length} 位學生，請在下方選擇。`;
+  document.getElementById("studentInfo").textContent=students.length===1?`已綁定學生：${studentLabel(students[0])}`:`此帳號已綁定 ${students.length} 位學生，請選擇接送學生。`;
+  if(students.length===1){
+    selectedStudentId=students[0].student_id;
+    const fixed=document.getElementById("singleStudent");
+    fixed.textContent=studentLabel(students[0]);
+    fixed.classList.remove("hidden");
+  }else{
+    const select=document.getElementById("studentSelect");
+    select.innerHTML=students.map(s=>`<option value="${s.student_id}">${studentLabel(s)}</option>`).join("");
+    selectedStudentId=select.value;
+    select.addEventListener("change",()=>selectedStudentId=select.value);
+    document.getElementById("multiStudentWrap").classList.remove("hidden");
+  }
   document.getElementById("pickupForm").classList.remove("hidden");
-  status("選擇學生後按「我要接送」。");
- }catch(e){status(e.message||"讀取失敗","error");document.getElementById("studentInfo").textContent="目前無法讀取綁定資料";}
+  showStatus("確認學生後按「我要接送」。");
+ }catch(e){document.getElementById("studentInfo").textContent="目前無法讀取綁定資料";showStatus(e.message||"讀取失敗","error");}
 }
 document.getElementById("pickupBtn").addEventListener("click",async()=>{
- const studentId=document.getElementById("studentSelect").value;
- if(!studentId){status("請選擇學生。","error");return;}
- const btn=document.getElementById("pickupBtn");btn.disabled=true;status("正在送出接送通知…");
- try{const res=await fetch("/api/parent-pickup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({line_user_id:profile.userId,line_display_name:profile.displayName,student_id:studentId})});const data=await res.json();if(!res.ok||!data.ok)throw new Error(data.message||"送出失敗");status("✅ "+data.message,"success");}
- catch(err){status(err.message||"送出失敗","error");}finally{btn.disabled=false;}
+ if(!selectedStudentId){showStatus("請選擇學生。","error");return;}
+ const btn=document.getElementById("pickupBtn");btn.disabled=true;showStatus("正在送出接送通知…");
+ try{
+  const r=await fetch("/api/parent-pickup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({line_user_id:profile.userId,line_display_name:profile.displayName,student_id:selectedStudentId})});
+  const d=await r.json();
+  if(!r.ok||!d.ok)throw new Error(d.message||"送出失敗");
+  showStatus("✅ "+d.message,"success");
+ }catch(err){showStatus(err.message||"送出失敗","error");}finally{btn.disabled=false;}
 });
 init();
 </script>
-</body></html>
+</body>
+</html>
