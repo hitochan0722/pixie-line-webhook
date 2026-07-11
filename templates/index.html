@@ -6,62 +6,46 @@
   <meta name="theme-color" content="#fffdf8">
   <title>皮克西共學教育｜PiXiE Education</title>
   <style>
+    * { box-sizing: border-box; }
     html, body {
       margin: 0;
       min-height: 100%;
       background: #fffdf8;
     }
-
     body {
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
     }
-
     .home {
       position: relative;
       width: 100%;
       max-width: 1536px;
       line-height: 0;
-      user-select: none;
-      -webkit-user-select: none;
     }
-
     .home img {
       display: block;
       width: 100%;
       height: auto;
     }
-
     .hotspot {
       position: absolute;
       display: block;
-      border-radius: 8%;
+      border-radius: 12%;
       -webkit-tap-highlight-color: transparent;
     }
-
-    .hotspot:focus-visible {
-      outline: 5px solid rgba(255,255,255,.95);
-      outline-offset: -8px;
-    }
-
-    /* 左側：家長專區 */
     .parent {
       left: 7.7%;
       top: 34.8%;
       width: 36.9%;
       height: 54.3%;
     }
-
-    /* 右側：新生入口 */
     .new-parent {
       left: 48.2%;
       top: 34.8%;
       width: 37.0%;
       height: 54.3%;
     }
-
     @media (max-width: 640px) {
       body {
         min-height: 100svh;
@@ -71,10 +55,4 @@
   </style>
 </head>
 <body>
-  <main class="home" aria-label="皮克西共學教育入口">
-    <img src="/static/pixie-home.png" alt="皮克西共學教育入口，包含家長專區與新生入口">
-    <a class="hotspot parent" href="/parent" aria-label="進入家長專區"></a>
-    <a class="hotspot new-parent" href="/new-parent" aria-label="進入新生入口"></a>
-  </main>
-</body>
-</html>
+  <main class="home">
