@@ -569,6 +569,126 @@ def api_parent_student():
     })
 
 
+
+@app.route("/api/parent-leave", methods=["POST"])
+def api_parent_leave():
+    data = request.get_json(silent=True) or {}
+
+    line_user_id = clean(data.get("line_user_id") or data.get("userId"))
+    student_id = clean(data.get("student_id") or data.get("studentId"))
+    leave_date = clean(data.get("date") or data.get("leave_date"))
+    leave_type = clean(data.get("type") or data.get("leave_type"))
+    reason = clean(data.get("reason"))
+    display_name = clean(data.get("line_display_name") or data.get("displayName"))
+
+    if not line_user_id:
+        return jsonify({"ok": False, "message": "無法取得 LINE 家長身分。"}), 400
+    if not student_id:
+        return jsonify({"ok": False, "message": "請選擇學生。"}), 400
+    if not leave_date:
+        return jsonify({"ok": False, "message": "請選擇請假日期。"}), 400
+    if not leave_type:
+        return jsonify({"ok": False, "message": "請選擇請假類型。"}), 400
+
+    try:
+        students = lookup_parent_students_from_sheet(line_user_id)
+    except Exception as error:
+        print("請假前查詢綁定資料失敗：", error)
+        return jsonify({"ok": False, "message": "目前無法確認家長身分，請稍後再試。"}), 500
+
+    student = next(
+        (item for item in students if clean(item.get("student_id")) == student_id),
+        None,
+    )
+    if not student:
+        return jsonify({"ok": False, "message": "此 LINE 帳號未綁定該學生。"}), 403
+
+    payload = {
+        "form_type": "leave",
+        "student_id": student_id,
+        "name": clean(student.get("student_name")),
+        "english_name": clean(student.get("english_name")),
+        "class_name": clean(student.get("class_name")),
+        "date": leave_date,
+        "type": leave_type,
+        "reason": reason,
+        "line_user_id": line_user_id,
+        "line_display_name": display_name,
+    }
+
+    try:
+        result = gas_post(payload)
+    except Exception as error:
+        print("請假資料寫入失敗：", error)
+        return jsonify({"ok": False, "message": "請假資料送出失敗，請稍後再試。"}), 500
+
+    if result.get("status") == "ok":
+        return jsonify({
+            "ok": True,
+            "message": result.get("message_zh") or "請假申請已送出。",
+        })
+
+    return jsonify({
+        "ok": False,
+        "message": result.get("message") or "請假申請送出失敗。",
+    }), 400
+
+
+@app.route("/api/parent-pickup", methods=["POST"])
+def api_parent_pickup():
+    data = request.get_json(silent=True) or {}
+
+    line_user_id = clean(data.get("line_user_id") or data.get("userId"))
+    student_id = clean(data.get("student_id") or data.get("studentId"))
+    display_name = clean(data.get("line_display_name") or data.get("displayName"))
+
+    if not line_user_id:
+        return jsonify({"ok": False, "message": "無法取得 LINE 家長身分。"}), 400
+    if not student_id:
+        return jsonify({"ok": False, "message": "請選擇學生。"}), 400
+
+    try:
+        students = lookup_parent_students_from_sheet(line_user_id)
+    except Exception as error:
+        print("接送前查詢綁定資料失敗：", error)
+        return jsonify({"ok": False, "message": "目前無法確認家長身分，請稍後再試。"}), 500
+
+    student = next(
+        (item for item in students if clean(item.get("student_id")) == student_id),
+        None,
+    )
+    if not student:
+        return jsonify({"ok": False, "message": "此 LINE 帳號未綁定該學生。"}), 403
+
+    payload = {
+        "form_type": "pickup",
+        "student_id": student_id,
+        "name": clean(student.get("student_name")),
+        "english_name": clean(student.get("english_name")),
+        "class_name": clean(student.get("class_name")),
+        "parent_user_id": line_user_id,
+        "parent_name": display_name,
+        "status": "待處理",
+    }
+
+    try:
+        result = gas_post(payload)
+    except Exception as error:
+        print("接送資料寫入失敗：", error)
+        return jsonify({"ok": False, "message": "接送通知送出失敗，請稍後再試。"}), 500
+
+    if result.get("status") == "ok":
+        return jsonify({
+            "ok": True,
+            "message": result.get("message_zh") or "接送通知已送出。",
+        })
+
+    return jsonify({
+        "ok": False,
+        "message": result.get("message") or "接送通知送出失敗。",
+    }), 400
+
+
 @app.route("/api/debug-student")
 def api_debug_student():
     student_id = clean(request.args.get("student_id"))
