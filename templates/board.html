@@ -1,300 +1,31 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
-
 <head>
 <meta charset="UTF-8">
-<title>PiXiE 接送看板 V15.2</title>
-
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>皮克西接送廣播看板</title>
 <style>
-body {
-    margin: 0;
-    font-family: "Microsoft JhengHei", sans-serif;
-    background: #f4f1ea;
-}
-
-.header {
-    background: #6b4f3f;
-    color: white;
-    padding: 20px;
-    font-size: 32px;
-    text-align: center;
-    font-weight: bold;
-}
-
-.container {
-    padding: 20px;
-}
-
-.notice {
-    background: #fff7d6;
-    padding: 12px 16px;
-    border-radius: 12px;
-    margin-bottom: 16px;
-    font-size: 16px;
-}
-
-.card {
-    background: white;
-    border-radius: 18px;
-    padding: 22px;
-    margin-bottom: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-}
-
-.card.waiting {
-    border-left: 12px solid #f6c453;
-}
-
-.card.packing {
-    border-left: 12px solid #6ca8ff;
-}
-
-.card.later {
-    border-left: 12px solid #f28c28;
-}
-
-.card.ready {
-    border-left: 12px solid #62c370;
-}
-
-.card.alert {
-    border-left: 12px solid #e74c3c;
-    background: #fff0f0;
-}
-
-.number {
-    font-size: 42px;
-    font-weight: bold;
-    color: #b35c00;
-}
-
-.name {
-    font-size: 42px;
-    font-weight: bold;
-}
-
-.info {
-    font-size: 18px;
-    color: #666;
-    margin-top: 6px;
-}
-
-.status {
-    font-size: 26px;
-    margin-top: 10px;
-    font-weight: bold;
-}
-
-button {
-    padding: 14px 20px;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 20px;
-    margin-right: 8px;
-}
-
-.call {
-    background: #f6c453;
-}
-
-.clear {
-    background: black;
-    color: white;
-    margin-bottom: 18px;
-}
-
-.enable {
-    background: #62c370;
-    color: white;
-    margin-bottom: 18px;
-}
-
-.empty {
-    text-align: center;
-    font-size: 28px;
-    color: #777;
-    margin-top: 80px;
-}
+:root{--navy:#252b5f;--cream:#fffaf2;--yellow:#fff2a8;--pink:#ef8498;--green:#5fa85f}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--cream);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:var(--navy)}
+header{background:var(--navy);color:white;padding:18px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;position:sticky;top:0;z-index:2}.brand h1{margin:0;color:var(--yellow);font-size:clamp(27px,4vw,46px)}.brand p{margin:5px 0 0;font-size:16px;opacity:.9}.tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}#clock{font-size:20px;font-weight:900}button{border:0;border-radius:16px;padding:12px 18px;background:var(--pink);color:white;font-size:18px;font-weight:900;cursor:pointer}button.on{background:var(--green)}main{padding:24px;max-width:1600px;margin:0 auto}.summary{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;font-size:20px;font-weight:900}#grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}.card{background:white;border:5px solid var(--navy);border-radius:28px;padding:24px;min-height:220px;box-shadow:0 10px 24px rgba(37,43,95,.13);animation:pop .3s ease}.card.new{border-color:var(--pink);box-shadow:0 0 0 8px rgba(239,132,152,.18),0 10px 24px rgba(37,43,95,.13)}@keyframes pop{from{transform:scale(.96);opacity:.2}to{transform:scale(1);opacity:1}}.name{font-size:clamp(38px,6vw,70px);font-weight:1000;line-height:1.1;margin-bottom:10px}.en{font-size:24px;color:#666;font-weight:800}.meta{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap}.badge{padding:9px 14px;border-radius:999px;background:var(--yellow);font-size:20px;font-weight:900}.status{background:#ffe0e6;color:#9a3145}.status.packing{background:#e6f3ff;color:#24557f}.status.wait{background:#fff0d7;color:#8d5612}.empty{text-align:center;padding:90px 20px;font-size:clamp(28px,5vw,52px);font-weight:900;color:#888}.notice{margin-top:20px;text-align:center;color:#666;font-size:16px;font-weight:700}@media(max-width:650px){header{padding:14px;align-items:flex-start}.tools{gap:8px}button{font-size:15px;padding:10px 12px}main{padding:14px}.card{min-height:180px;padding:20px}}
 </style>
-
 </head>
-
 <body>
-
-<div class="header">
-PiXiE 接送語音叫號看板 V15.2
-</div>
-
-<div class="container">
-
-<div class="notice">
-🔊 每天第一次打開主看板，請先按「啟用語音」。<br>
-🚶 老師在群組按「已下樓」後，看板會自動播放學生姓名。<br>
-📢 吵鬧環境版：自動叫號會播放 3 次，每次間隔 8 秒。<br>
-⏰ 老師按「5–10分鐘」後，10分鐘會自動提醒老師群組。
-</div>
-
-<button class="enable" onclick="enableVoice()">🔊 啟用語音</button>
-<button class="clear" onclick="clearQueue()">清空全部</button>
-
-<div id="list"></div>
-
-</div>
-
+<header><div class="brand"><h1>皮克西接送廣播看板</h1><p>PiXiE Education</p></div><div class="tools"><span id="clock"></span><button id="soundBtn">🔇 啟用廣播</button></div></header>
+<main><div class="summary"><span>目前等待：<strong id="count">0</strong> 位</span><span id="updated">尚未更新</span></div><div id="grid"><div class="empty">目前沒有待接送學生</div></div><div class="notice">第一次使用請按右上角「啟用廣播」。新接送通知會自動廣播三次。</div></main>
 <script>
-let voiceEnabled = false;
-const announcedStudents = new Set();
-
-function enableVoice() {
-    voiceEnabled = true;
-
-    if (!("speechSynthesis" in window)) {
-        alert("此裝置不支援語音");
-        return;
-    }
-
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance("語音已啟用");
-    utterance.lang = "zh-TW";
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-
-    window.speechSynthesis.speak(utterance);
-
-    alert("語音已啟用，之後已下樓會自動叫號。");
-}
-
-function speak(name) {
-    if (!("speechSynthesis" in window)) {
-        alert("此裝置不支援語音");
-        return;
-    }
-
-    if (!voiceEnabled) {
-        console.log("語音尚未啟用");
-        return;
-    }
-
-    window.speechSynthesis.cancel();
-
-    const text = name + "，請到門口。";
-    const utterance = new SpeechSynthesisUtterance(text);
-
-    utterance.lang = "zh-TW";
-    utterance.rate = 0.85;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-
-    window.speechSynthesis.speak(utterance);
-}
-
-function getCardClass(status) {
-    if (status === "收拾書包") return "packing";
-    if (status === "5–10分鐘") return "later";
-    if (status === "已下樓") return "ready";
-    if (status === "提醒中") return "alert";
-    return "waiting";
-}
-
-async function loadQueue() {
-    const res = await fetch('/api/queue');
-    const data = await res.json();
-
-    const list = document.getElementById('list');
-    list.innerHTML = '';
-
-    if (data.length === 0) {
-        list.innerHTML = '<div class="empty">目前沒有等待接送的學生</div>';
-        return;
-    }
-
-    data.forEach((item, index) => {
-        const studentName = item.student_name;
-        const englishName = item.english_name || "";
-        const className = item.class_name || "未填";
-        const status = item.status || "等待處理";
-        const statusText = item.status_text || "等待老師處理";
-        const updatedAt = item.updated_at || "";
-
-        const card = document.createElement('div');
-        card.className = "card " + getCardClass(status);
-
-        card.innerHTML = `
-            <div>
-                <div class="number">${index + 1}</div>
-                <div class="name">${studentName} ${englishName}</div>
-                <div class="info">班級：${className}｜更新：${updatedAt}</div>
-                <div class="status">${statusText}</div>
-            </div>
-
-            <div>
-                <button class="call" onclick="manualCall(${index}, '${studentName}')">
-                    🔊 手動叫號
-                </button>
-            </div>
-        `;
-
-        list.appendChild(card);
-
-        if (item.announce === true && !announcedStudents.has(studentName)) {
-            announcedStudents.add(studentName);
-
-            let count = 0;
-
-            function repeatSpeak() {
-                speak(studentName);
-                count++;
-
-                if (count < 3) {
-                    setTimeout(repeatSpeak, 8000);
-                } else {
-                    setTimeout(async () => {
-                        await fetch(`/api/announced/${encodeURIComponent(studentName)}`, {
-                            method: 'POST'
-                        });
-
-                        loadQueue();
-                    }, 2000);
-                }
-            }
-
-            repeatSpeak();
-        }
-    });
-}
-
-async function manualCall(index, name) {
-    voiceEnabled = true;
-
-    speak(name);
-
-    await fetch(`/api/call/${index}`, {
-        method: 'POST'
-    });
-
-    loadQueue();
-}
-
-async function clearQueue() {
-    if (!confirm("確定清空全部？")) return;
-
-    await fetch('/api/clear', {
-        method: 'POST'
-    });
-
-    loadQueue();
-}
-
-loadQueue();
-setInterval(loadQueue, 3000);
+const grid=document.getElementById('grid'),count=document.getElementById('count'),updated=document.getElementById('updated'),soundBtn=document.getElementById('soundBtn');
+let soundEnabled=localStorage.getItem('pixieSoundEnabled')==='1',speaking=false,queue=[];
+const seen=new Set(JSON.parse(localStorage.getItem('pixieBroadcasted')||'[]'));
+function esc(v){return String(v||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function updateSoundButton(){soundBtn.textContent=soundEnabled?'🔊 廣播已啟用':'🔇 啟用廣播';soundBtn.classList.toggle('on',soundEnabled);}
+soundBtn.addEventListener('click',()=>{soundEnabled=!soundEnabled;localStorage.setItem('pixieSoundEnabled',soundEnabled?'1':'0');speechSynthesis.cancel();speaking=false;updateSoundButton();if(soundEnabled){const u=new SpeechSynthesisUtterance('皮克西接送廣播已啟用');u.lang='zh-TW';speechSynthesis.speak(u);processQueue();}});
+function speakThree(r){return new Promise(resolve=>{let times=0;function next(){if(!soundEnabled){resolve();return;}times++;const u=new SpeechSynthesisUtterance('請 '+(r.student_name||'同學')+' 同學收拾書包，家長已到。');u.lang='zh-TW';u.rate=.85;u.onend=()=>times<3?setTimeout(next,700):resolve();u.onerror=()=>resolve();speechSynthesis.speak(u);}next();});}
+async function processQueue(){if(speaking||!soundEnabled||!queue.length)return;speaking=true;while(queue.length&&soundEnabled)await speakThree(queue.shift());speaking=false;}
+function statusClass(s){if(s==='收拾書包')return'packing';if(String(s).indexOf('5')>=0)return'wait';return'';}
+function render(records){count.textContent=records.length;if(!records.length){grid.innerHTML='<div class="empty">目前沒有待接送學生</div>';return;}grid.innerHTML=records.map(r=>{const key=String(r.row||r.student_id+'_'+r.time);return '<article class="card '+(seen.has(key)?'':'new')+'"><div class="name">'+esc(r.student_name)+'</div><div class="en">'+esc(r.english_name)+'</div><div class="meta"><span class="badge">'+esc(r.class_name||'未填班級')+'</span><span class="badge status '+statusClass(r.status)+'">'+esc(r.status||'待處理')+'</span></div></article>';}).join('');}
+async function load(){try{const res=await fetch('/api/board-pickups?_='+Date.now(),{cache:'no-store'}),data=await res.json();if(!res.ok||!data.ok)throw new Error(data.message||'讀取失敗');const records=data.records||[];for(const r of records){const key=String(r.row||r.student_id+'_'+r.time);if(!seen.has(key)){seen.add(key);queue.push(r);}}localStorage.setItem('pixieBroadcasted',JSON.stringify(Array.from(seen).slice(-300)));render(records);updated.textContent='更新：'+new Date().toLocaleTimeString('zh-TW');processQueue();}catch(e){updated.textContent='連線失敗';console.error(e);}}
+function clock(){document.getElementById('clock').textContent=new Date().toLocaleString('zh-TW',{hour12:false});}updateSoundButton();clock();load();setInterval(clock,1000);setInterval(load,3000);
 </script>
-
 </body>
-
 </html>
