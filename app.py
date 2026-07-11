@@ -856,52 +856,94 @@ def api_pickup():
 
 @app.route("/api/board-pickups")
 def api_board_pickups():
+    merged = {}
+    gas_error = ""
+
+    # 先讀 Google Sheet，讓 Render 重啟後仍能恢復看板資料。
     try:
         result = gas_get({
             "action": "pickupRecords",
             "only_open": "1",
             "callback": "pixieCallback",
         })
-        records = result.get("records") or []
-        visible = []
-        for record in records:
+
+        for record in result.get("records") or []:
             status = clean(record.get("status"))
             if status in ("已下樓", "已完成", "取消"):
                 continue
-            visible.append({
-                "row": int(record.get("row") or 0),
-                "student_id": clean(record.get("student_id")),
+
+            row = int(record.get("row") or 0)
+            student_id = clean(record.get("student_id"))
+            time_text = clean(record.get("time"))
+            key = f"row:{row}" if row else f"{student_id}:{time_text}"
+
+            merged[key] = {
+                "row": row,
+                "student_id": student_id,
                 "student_name": clean(record.get("student_name")),
                 "english_name": clean(record.get("english_name")),
                 "class_name": clean(record.get("class_name")),
                 "status": status or "待處理",
-                "time": clean(record.get("time")),
-            })
-        return jsonify({
-            "ok": True,
-            "records": visible,
-            "updated_at": datetime.now().isoformat(),
-        })
+                "time": time_text,
+            }
+
     except Exception as error:
-        print("讀取接送看板失敗：", error)
-        records = []
-        for item in pickup_records.values():
-            if clean(item.get("status")) in ("已下樓", "已完成", "取消"):
-                continue
-            records.append({
-                "row": int(item.get("gas_row") or 0),
-                "student_id": clean(item.get("student_id")),
-                "student_name": clean(item.get("student_name")),
-                "english_name": "",
-                "class_name": clean(item.get("class_name")),
-                "status": clean(item.get("status")) or "待處理",
-                "time": clean(item.get("time")),
+        gas_error = str(error)
+        print("讀取 Google Sheet 接送紀錄失敗：", error)
+
+    # 無論 Sheet 是否成功，都合併 Render 記憶體中的最新接送通知。
+    # 這可避免 Sheet 日期格式或同步延遲造成看板暫時空白。
+    for item in pickup_records.values():
+        status = clean(item.get("status"))
+        if status in ("已下樓", "已完成", "取消"):
+            continue
+
+        row = int(item.get("gas_row") or 0)
+        student_id = clean(item.get("student_id"))
+        time_text = clean(item.get("time"))
+        key = f"row:{row}" if row else f"{student_id}:{time_text}"
+
+        memory_record = {
+            "row": row,
+            "student_id": student_id,
+            "student_name": clean(item.get("student_name")),
+            "english_name": clean(item.get("english_name")),
+            "class_name": clean(item.get("class_name")),
+            "status": status or "待處理",
+            "time": time_text,
+        }
+
+        if key in merged:
+            # 記憶體資料通常更新得更快，狀態以記憶體為優先。
+            merged[key].update({
+                "student_name": memory_record["student_name"] or merged[key]["student_name"],
+                "english_name": memory_record["english_name"] or merged[key]["english_name"],
+                "class_name": memory_record["class_name"] or merged[key]["class_name"],
+                "status": memory_record["status"] or merged[key]["status"],
+                "time": memory_record["time"] or merged[key]["time"],
             })
-        return jsonify({
-            "ok": True,
-            "records": records,
-            "fallback": True,
-        })
+        else:
+            merged[key] = memory_record
+
+    records = list(merged.values())
+    records.sort(
+        key=lambda item: (
+            int(item.get("row") or 0),
+            clean(item.get("time")),
+        ),
+        reverse=True,
+    )
+
+    return jsonify({
+        "ok": True,
+        "records": records,
+        "updated_at": datetime.now().isoformat(),
+        "gas_error": gas_error,
+        "source_count": {
+            "merged": len(records),
+            "memory": len(pickup_records),
+        },
+    })
 
 
 @app.route("/board")
