@@ -11,15 +11,26 @@ header{background:var(--navy);color:white;padding:18px 28px;display:flex;align-i
 </style>
 </head>
 <body>
-<header><div class="brand"><h1>皮克西接送廣播看板</h1><p>PiXiE Education</p></div><div class="tools"><span id="clock"></span><button id="soundBtn">🔇 啟用廣播</button></div></header>
+<header><div class="brand"><h1>皮克西接送廣播看板</h1><p>PiXiE Education</p></div><div class="tools"><span id="clock"></span><button id="soundBtn">🔇 啟用廣播</button><button id="replayBtn">↻ 重播目前名單</button></div></header>
 <main><div class="summary"><span>目前等待：<strong id="count">0</strong> 位</span><span id="updated">尚未更新</span></div><div id="grid"><div class="empty">目前沒有待接送學生</div></div><div class="notice">第一次使用請按右上角「啟用廣播」。新接送通知會自動廣播三次。</div></main>
 <script>
-const grid=document.getElementById('grid'),count=document.getElementById('count'),updated=document.getElementById('updated'),soundBtn=document.getElementById('soundBtn');
+const grid=document.getElementById('grid'),count=document.getElementById('count'),updated=document.getElementById('updated'),soundBtn=document.getElementById('soundBtn'),replayBtn=document.getElementById('replayBtn');
 let soundEnabled=localStorage.getItem('pixieSoundEnabled')==='1',speaking=false,queue=[];
 const seen=new Set(JSON.parse(localStorage.getItem('pixieBroadcasted')||'[]'));
 function esc(v){return String(v||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function updateSoundButton(){soundBtn.textContent=soundEnabled?'🔊 廣播已啟用':'🔇 啟用廣播';soundBtn.classList.toggle('on',soundEnabled);}
 soundBtn.addEventListener('click',()=>{soundEnabled=!soundEnabled;localStorage.setItem('pixieSoundEnabled',soundEnabled?'1':'0');speechSynthesis.cancel();speaking=false;updateSoundButton();if(soundEnabled){const u=new SpeechSynthesisUtterance('皮克西接送廣播已啟用');u.lang='zh-TW';speechSynthesis.speak(u);processQueue();}});
+replayBtn.addEventListener('click',async()=>{
+  localStorage.removeItem('pixieBroadcasted');
+  seen.clear();
+  queue=[];
+  speechSynthesis.cancel();
+  speaking=false;
+  soundEnabled=true;
+  localStorage.setItem('pixieSoundEnabled','1');
+  updateSoundButton();
+  await load();
+});
 function speakThree(r){return new Promise(resolve=>{let times=0;function next(){if(!soundEnabled){resolve();return;}times++;const u=new SpeechSynthesisUtterance('請 '+(r.student_name||'同學')+' 同學收拾書包，家長已到。');u.lang='zh-TW';u.rate=.85;u.onend=()=>times<3?setTimeout(next,700):resolve();u.onerror=()=>resolve();speechSynthesis.speak(u);}next();});}
 async function processQueue(){if(speaking||!soundEnabled||!queue.length)return;speaking=true;while(queue.length&&soundEnabled)await speakThree(queue.shift());speaking=false;}
 function statusClass(s){if(s==='收拾書包')return'packing';if(String(s).indexOf('5')>=0)return'wait';return'';}
