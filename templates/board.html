@@ -16,12 +16,14 @@ header{background:var(--navy);color:white;padding:18px 28px;display:flex;align-i
 <script>
 const grid=document.getElementById('grid'),count=document.getElementById('count'),updated=document.getElementById('updated'),soundBtn=document.getElementById('soundBtn'),replayBtn=document.getElementById('replayBtn');
 let soundEnabled=localStorage.getItem('pixieSoundEnabled')==='1',speaking=false,queue=[];
-const seen=new Set(JSON.parse(localStorage.getItem('pixieBroadcasted')||'[]'));
+const seen=new Set();
 function esc(v){return String(v||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function updateSoundButton(){soundBtn.textContent=soundEnabled?'🔊 廣播已啟用':'🔇 啟用廣播';soundBtn.classList.toggle('on',soundEnabled);}
+function updateSoundButton(){
+  soundBtn.textContent=soundEnabled?'🔊 廣播已啟用':'🔇 啟用廣播';
+  soundBtn.classList.toggle('on',soundEnabled);
+}
 soundBtn.addEventListener('click',()=>{soundEnabled=!soundEnabled;localStorage.setItem('pixieSoundEnabled',soundEnabled?'1':'0');speechSynthesis.cancel();speaking=false;updateSoundButton();if(soundEnabled){const u=new SpeechSynthesisUtterance('皮克西接送廣播已啟用');u.lang='zh-TW';speechSynthesis.speak(u);processQueue();}});
 replayBtn.addEventListener('click',async()=>{
-  localStorage.removeItem('pixieBroadcasted');
   seen.clear();
   queue=[];
   speechSynthesis.cancel();
@@ -34,9 +36,15 @@ replayBtn.addEventListener('click',async()=>{
 function speakThree(r){return new Promise(resolve=>{let times=0;function next(){if(!soundEnabled){resolve();return;}times++;const u=new SpeechSynthesisUtterance('請 '+(r.student_name||'同學')+' 同學收拾書包，家長已到。');u.lang='zh-TW';u.rate=.85;u.onend=()=>times<3?setTimeout(next,700):resolve();u.onerror=()=>resolve();speechSynthesis.speak(u);}next();});}
 async function processQueue(){if(speaking||!soundEnabled||!queue.length)return;speaking=true;while(queue.length&&soundEnabled)await speakThree(queue.shift());speaking=false;}
 function statusClass(s){if(s==='收拾書包')return'packing';if(String(s).indexOf('5')>=0)return'wait';return'';}
-function render(records){count.textContent=records.length;if(!records.length){grid.innerHTML='<div class="empty">目前沒有待接送學生</div>';return;}grid.innerHTML=records.map(r=>{const key=String(r.row||r.student_id+'_'+r.time);return '<article class="card '+(seen.has(key)?'':'new')+'"><div class="name">'+esc(r.student_name)+'</div><div class="en">'+esc(r.english_name)+'</div><div class="meta"><span class="badge">'+esc(r.class_name||'未填班級')+'</span><span class="badge status '+statusClass(r.status)+'">'+esc(r.status||'待處理')+'</span></div></article>';}).join('');}
-async function load(){try{const res=await fetch('/api/board-pickups?_='+Date.now(),{cache:'no-store'}),data=await res.json();if(!res.ok||!data.ok)throw new Error(data.message||'讀取失敗');const records=data.records||[];for(const r of records){const key=String(r.row||r.student_id+'_'+r.time);if(!seen.has(key)){seen.add(key);queue.push(r);}}localStorage.setItem('pixieBroadcasted',JSON.stringify(Array.from(seen).slice(-300)));render(records);updated.textContent='更新：'+new Date().toLocaleTimeString('zh-TW');processQueue();}catch(e){updated.textContent='連線失敗';console.error(e);}}
-function clock(){document.getElementById('clock').textContent=new Date().toLocaleString('zh-TW',{hour12:false});}updateSoundButton();clock();load();setInterval(clock,1000);setInterval(load,3000);
+function render(records){count.textContent=records.length;if(!records.length){grid.innerHTML='<div class="empty">目前沒有待接送學生</div>';return;}grid.innerHTML=records.map(r=>{const key=[r.row||'',r.student_id||'',r.time||'',r.student_name||''].join('|');return '<article class="card '+(seen.has(key)?'':'new')+'"><div class="name">'+esc(r.student_name)+'</div><div class="en">'+esc(r.english_name)+'</div><div class="meta"><span class="badge">'+esc(r.class_name||'未填班級')+'</span><span class="badge status '+statusClass(r.status)+'">'+esc(r.status||'待處理')+'</span></div></article>';}).join('');}
+async function load(){try{const res=await fetch('/api/board-pickups?_='+Date.now(),{cache:'no-store'}),data=await res.json();if(!res.ok||!data.ok)throw new Error(data.message||'讀取失敗');const records=data.records||[];for(const r of records){const key=[r.row||'',r.student_id||'',r.time||'',r.student_name||''].join('|');if(!seen.has(key)){seen.add(key);queue.push(r);}}render(records);updated.textContent='更新：'+new Date().toLocaleTimeString('zh-TW');processQueue();}catch(e){updated.textContent='連線失敗';console.error(e);}}
+function clock(){document.getElementById('clock').textContent=new Date().toLocaleString('zh-TW',{hour12:false});}
+window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
+updateSoundButton();
+clock();
+load();
+setInterval(clock,1000);
+setInterval(load,3000);
 </script>
 </body>
 </html>
