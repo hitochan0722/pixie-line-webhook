@@ -283,6 +283,7 @@ def lookup_parent_students_from_sheet(
 def add_pickup(
     student_name: str,
     parent_user_id: str,
+    class_name: str = "",
 ) -> Dict[str, Any]:
     now = datetime.now()
     record_id = (
@@ -292,6 +293,7 @@ def add_pickup(
     item = {
         "id": record_id,
         "student_name": student_name,
+        "class_name": clean(class_name),
         "parent_user_id": parent_user_id,
         "time": now.strftime("%H:%M:%S"),
         "played": False,
@@ -302,9 +304,14 @@ def add_pickup(
     return item
 
 
-def notify_teacher(item: Dict[str, Any]) -> None:
-    student_name = item["student_name"]
-    record_id = item["id"]
+def notify_teacher(item: Dict[str, Any]) -> bool:
+    student_name = clean(item.get("student_name"))
+    class_name = clean(item.get("class_name"))
+    record_id = clean(item.get("id"))
+
+    detail = student_name
+    if class_name:
+        detail += f"｜{class_name}"
 
     message = {
         "type": "template",
@@ -312,7 +319,7 @@ def notify_teacher(item: Dict[str, Any]) -> None:
         "template": {
             "type": "buttons",
             "title": "接送通知",
-            "text": f"{student_name} 家長已到",
+            "text": f"{detail}\n家長已到，請選擇處理狀態。",
             "actions": [
                 {
                     "type": "postback",
@@ -338,7 +345,23 @@ def notify_teacher(item: Dict[str, Any]) -> None:
         },
     }
 
-    push_to_line(TEACHER_GROUP_ID, [message])
+    sent = push_to_line(TEACHER_GROUP_ID, [message])
+
+    if not sent:
+        sent = push_to_line(
+            TEACHER_GROUP_ID,
+            [{
+                "type": "text",
+                "text": (
+                    f"🚗【皮克西接送通知】\n"
+                    f"學生：{student_name}\n"
+                    f"班級：{class_name or '未填寫'}\n"
+                    "家長已到。"
+                ),
+            }],
+        )
+
+    return sent
 
 
 def handle_pickup_postback(event: Dict[str, Any]) -> None:
@@ -424,7 +447,11 @@ def callback():
                     continue
 
                 student_name = student_name_of(student)
-                item = add_pickup(student_name, user_id)
+                item = add_pickup(
+                    student_name,
+                    user_id,
+                    clean(student.get("班級") or student.get("class_name")),
+                )
                 notify_teacher(item)
                 reply_to_line(
                     reply_token,
@@ -651,21 +678,30 @@ def api_parent_pickup():
         students = lookup_parent_students_from_sheet(line_user_id)
     except Exception as error:
         print("接送前查詢綁定資料失敗：", error)
-        return jsonify({"ok": False, "message": "目前無法確認家長身分，請稍後再試。"}), 500
+        return jsonify({
+            "ok": False,
+            "message": "目前無法確認家長身分，請稍後再試。",
+        }), 500
 
     student = next(
         (item for item in students if clean(item.get("student_id")) == student_id),
         None,
     )
     if not student:
-        return jsonify({"ok": False, "message": "此 LINE 帳號未綁定該學生。"}), 403
+        return jsonify({
+            "ok": False,
+            "message": "此 LINE 帳號未綁定該學生。",
+        }), 403
+
+    student_name = clean(student.get("student_name"))
+    class_name = clean(student.get("class_name"))
 
     payload = {
         "form_type": "pickup",
         "student_id": student_id,
-        "name": clean(student.get("student_name")),
+        "name": student_name,
         "english_name": clean(student.get("english_name")),
-        "class_name": clean(student.get("class_name")),
+        "class_name": class_name,
         "parent_user_id": line_user_id,
         "parent_name": display_name,
         "status": "待處理",
@@ -675,18 +711,35 @@ def api_parent_pickup():
         result = gas_post(payload)
     except Exception as error:
         print("接送資料寫入失敗：", error)
-        return jsonify({"ok": False, "message": "接送通知送出失敗，請稍後再試。"}), 500
-
-    if result.get("status") == "ok":
         return jsonify({
-            "ok": True,
-            "message": result.get("message_zh") or "接送通知已送出。",
-        })
+            "ok": False,
+            "message": "接送通知送出失敗，請稍後再試。",
+        }), 500
+
+    if result.get("status") != "ok":
+        return jsonify({
+            "ok": False,
+            "message": result.get("message") or "接送通知送出失敗。",
+        }), 400
+
+    pickup_item = add_pickup(
+        student_name,
+        line_user_id,
+        class_name,
+    )
+    group_sent = notify_teacher(pickup_item)
+
+    if not group_sent:
+        return jsonify({
+            "ok": False,
+            "saved": True,
+            "message": "接送紀錄已寫入，但老師群組通知失敗，請聯絡老師確認。",
+        }), 502
 
     return jsonify({
-        "ok": False,
-        "message": result.get("message") or "接送通知送出失敗。",
-    }), 400
+        "ok": True,
+        "message": "接送通知已送出。",
+    })
 
 
 @app.route("/api/debug-student")
