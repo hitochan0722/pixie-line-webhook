@@ -946,6 +946,37 @@ def api_board_pickups():
     })
 
 
+
+@app.route("/api/pickup-system-status")
+def api_pickup_system_status():
+    gas_ok = False
+    gas_message = ""
+    gas_records = []
+
+    try:
+        result = gas_get({
+            "action": "pickupRecords",
+            "only_open": "0",
+            "callback": "pixieCallback",
+        })
+        gas_ok = result.get("status") == "ok"
+        gas_records = result.get("records") or []
+        gas_message = result.get("message") or ""
+    except Exception as error:
+        gas_message = str(error)
+
+    return jsonify({
+        "ok": True,
+        "student_gas_url_set": bool(STUDENT_GAS_URL),
+        "teacher_group_id_set": bool(TEACHER_GROUP_ID),
+        "line_token_set": bool(CHANNEL_ACCESS_TOKEN),
+        "gas_ok": gas_ok,
+        "gas_message": gas_message,
+        "gas_record_count": len(gas_records),
+        "memory_record_count": len(pickup_records),
+    })
+
+
 @app.route("/board")
 def board_page():
     return render_template("board.html")
