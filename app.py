@@ -650,6 +650,32 @@ def api_parent_leave():
         return jsonify({"ok": False, "message": "請假資料送出失敗，請稍後再試。"}), 500
 
     if result.get("status") == "ok":
+        student_name = clean(student.get("student_name"))
+        english_name = clean(student.get("english_name"))
+        class_name = clean(student.get("class_name"))
+
+        leave_message = (
+            "📢【皮克西共學教育｜請假通知】\n\n"
+            f"學生：{student_name}"
+            + (f" {english_name}" if english_name else "")
+            + f"\n班級：{class_name or '未填寫'}"
+            + f"\n日期：{leave_date}"
+            + f"\n類型：{leave_type}"
+            + f"\n原因：{reason or '未填寫'}"
+        )
+
+        group_sent = push_to_line(
+            TEACHER_GROUP_ID,
+            [{"type": "text", "text": leave_message}],
+        )
+
+        if not group_sent:
+            return jsonify({
+                "ok": False,
+                "saved": True,
+                "message": "請假紀錄已寫入，但老師群組通知失敗，請聯絡老師確認。",
+            }), 502
+
         return jsonify({
             "ok": True,
             "message": result.get("message_zh") or "請假申請已送出。",
