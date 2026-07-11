@@ -284,6 +284,8 @@ def add_pickup(
     student_name: str,
     parent_user_id: str,
     class_name: str = "",
+    student_id: str = "",
+    gas_row: int = 0,
 ) -> Dict[str, Any]:
     now = datetime.now()
     record_id = (
@@ -292,9 +294,12 @@ def add_pickup(
 
     item = {
         "id": record_id,
-        "student_name": student_name,
+        "student_id": clean(student_id),
+        "student_name": clean(student_name),
         "class_name": clean(class_name),
-        "parent_user_id": parent_user_id,
+        "parent_user_id": clean(parent_user_id),
+        "gas_row": int(gas_row or 0),
+        "status": "待處理",
         "time": now.strftime("%H:%M:%S"),
         "played": False,
     }
@@ -381,9 +386,15 @@ def handle_pickup_postback(event: Dict[str, Any]) -> None:
     item = pickup_records.get(record_id)
 
     if not item:
-        reply_to_line(reply_token, "找不到接送紀錄，可能已失效。")
+        reply_to_line(reply_token, "找不到接送紀錄，可能已失效或系統剛重新部署。")
         return
 
+    status_map = {
+        "packing": "收拾書包",
+        "wait": "5–10分鐘",
+        "down": "已下樓",
+        "cancel": "取消",
+    }
     replies = {
         "packing": "孩子正在收拾書包，請稍候。",
         "wait": "孩子約 5–10 分鐘後下樓。",
@@ -391,10 +402,25 @@ def handle_pickup_postback(event: Dict[str, Any]) -> None:
         "cancel": "本次接送通知已取消。",
     }
 
+    status = status_map.get(action)
     parent_message = replies.get(action)
-    if not parent_message:
+    if not status or not parent_message:
         reply_to_line(reply_token, "無法辨識此操作。")
         return
+
+    item["status"] = status
+    gas_row = int(item.get("gas_row") or 0)
+    if gas_row > 1:
+        try:
+            gas_get({
+                "action": "updatePickup",
+                "row": gas_row,
+                "status": status,
+                "reply": parent_message,
+                "callback": "pixieCallback",
+            })
+        except Exception as error:
+            print("更新接送 Sheet 狀態失敗：", error)
 
     parent_user_id = clean(item.get("parent_user_id"))
     student_name = clean(item.get("student_name"))
@@ -447,10 +473,29 @@ def callback():
                     continue
 
                 student_name = student_name_of(student)
+                class_name = clean(student.get("班級") or student.get("class_name"))
+                student_id = student_id_of(student)
+                gas_row = 0
+                try:
+                    gas_result = gas_post({
+                        "form_type": "pickup",
+                        "student_id": student_id,
+                        "name": student_name,
+                        "english_name": clean(student.get("英文姓名") or student.get("english_name")),
+                        "class_name": class_name,
+                        "parent_user_id": user_id,
+                        "status": "待處理",
+                    })
+                    gas_row = int(gas_result.get("row") or 0)
+                except Exception as error:
+                    print("LINE 接送寫入 Sheet 失敗：", error)
+
                 item = add_pickup(
                     student_name,
                     user_id,
-                    clean(student.get("班級") or student.get("class_name")),
+                    class_name,
+                    student_id,
+                    gas_row,
                 )
                 notify_teacher(item)
                 reply_to_line(
@@ -752,6 +797,8 @@ def api_parent_pickup():
         student_name,
         line_user_id,
         class_name,
+        student_id,
+        int(result.get("row") or 0),
     )
     group_sent = notify_teacher(pickup_item)
 
@@ -805,6 +852,61 @@ def api_pickup():
             item["played"] = True
 
     return jsonify(new_items)
+
+
+@app.route("/api/board-pickups")
+def api_board_pickups():
+    try:
+        result = gas_get({
+            "action": "pickupRecords",
+            "only_open": "1",
+            "callback": "pixieCallback",
+        })
+        records = result.get("records") or []
+        visible = []
+        for record in records:
+            status = clean(record.get("status"))
+            if status in ("已下樓", "已完成", "取消"):
+                continue
+            visible.append({
+                "row": int(record.get("row") or 0),
+                "student_id": clean(record.get("student_id")),
+                "student_name": clean(record.get("student_name")),
+                "english_name": clean(record.get("english_name")),
+                "class_name": clean(record.get("class_name")),
+                "status": status or "待處理",
+                "time": clean(record.get("time")),
+            })
+        return jsonify({
+            "ok": True,
+            "records": visible,
+            "updated_at": datetime.now().isoformat(),
+        })
+    except Exception as error:
+        print("讀取接送看板失敗：", error)
+        records = []
+        for item in pickup_records.values():
+            if clean(item.get("status")) in ("已下樓", "已完成", "取消"):
+                continue
+            records.append({
+                "row": int(item.get("gas_row") or 0),
+                "student_id": clean(item.get("student_id")),
+                "student_name": clean(item.get("student_name")),
+                "english_name": "",
+                "class_name": clean(item.get("class_name")),
+                "status": clean(item.get("status")) or "待處理",
+                "time": clean(item.get("time")),
+            })
+        return jsonify({
+            "ok": True,
+            "records": records,
+            "fallback": True,
+        })
+
+
+@app.route("/board")
+def board_page():
+    return render_template("board.html")
 
 
 # ======================================================
